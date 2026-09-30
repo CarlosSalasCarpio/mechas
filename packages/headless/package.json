@@ -1,0 +1,1 @@
+{ "name": "@epocas/headless", "private": true, "type": "module", "dependencies": { "@epocas/sim": "*" } }

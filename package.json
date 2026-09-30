@@ -1,0 +1,21 @@
+{
+  "name": "epocas",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @epocas/client",
+    "test": "vitest run",
+    "typecheck": "tsc -p . --noEmit",
+    "headless": "tsx packages/headless/src/main.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7"
+  }
+}

@@ -1,0 +1,2 @@
+{ "name": "@epocas/render", "private": true, "type": "module", "exports": "./src/index.ts",
+  "dependencies": { "@epocas/sim": "*", "pixi.js": "^8.6.0" } }

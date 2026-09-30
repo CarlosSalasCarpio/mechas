@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mechas — sandbox</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #14170f; font: 12px/1.5 ui-monospace, Menlo, monospace; color: #e7e5e4; }
+      body > canvas { position: fixed; inset: 0; }
+      .box { background: rgba(14, 11, 22, .88); border: 1px solid #6b4a2a; border-radius: 4px; user-select: none; }
+      #top { position: fixed; top: 8px; left: 8px; right: 8px; display: flex; gap: 14px; align-items: center; padding: 6px 12px; font-size: 14px; color: #ffb347; white-space: nowrap; }
+      #top > * { flex-shrink: 0; }
+      #top button { padding: 3px 8px; }
+      #idle.has { background: #ffb347; color: #0e0b16; }
+      .genTag { color: #7dffb0; letter-spacing: 1px; font-size: 13px; }
+      .qbox.research { min-width: 150px; }
+      .qbox.research b { font-size: 14px; }
+      #idle.has kbd { background: #0e0b16; color: #ffb347; }
+      #top .dim { color: #a8927a; font-size: 12px; flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+      #top .grow { flex-grow: 1; flex-shrink: 1; }
+      button { font: inherit; background: #1d1726; color: #ffb347; border: 1px solid #6b4a2a; border-radius: 3px; padding: 4px 10px; cursor: pointer; }
+      button:hover:not(:disabled) { background: #2a2136; }
+      button:disabled { opacity: .4; cursor: default; }
+      #panel { position: fixed; bottom: 8px; left: 330px; right: 396px; padding: 10px 14px; display: none; flex-direction: column; gap: 8px; }
+      #info { color: #f3e9d8; white-space: pre-line; }
+      #actions { display: flex; flex-wrap: wrap; gap: 8px; }
+      #actions button { display: flex; flex-direction: column; align-items: flex-start; min-width: 104px; }
+      #actions small { color: #a8927a; }
+      #queue { display: flex; gap: 6px; }
+      #queue:empty { display: none; }
+      .qbox { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 64px; padding: 4px 8px 8px; overflow: hidden; }
+      .qbox b { font-size: 18px; color: #f3e9d8; }
+      .qbox span { font-size: 11px; }
+      .qbox i { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; background: #7dffb0; }
+      .qbox:hover { border-color: #ff4d6d; color: #ff4d6d; }
+      kbd { font: inherit; font-size: 11px; color: #0e0b16; background: #ffb347; border-radius: 2px; padding: 0 4px; margin-right: 2px; }
+      #alert { position: fixed; top: 56px; left: 50%; transform: translateX(-50%); padding: 8px 18px; font-size: 16px; color: #ff4d6d; border-color: #ff4d6d; display: none; letter-spacing: 1px; }
+      .speed button.on { background: #ffb347; color: #0e0b16; }
+      #toast { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); padding: 6px 14px; color: #7dffb0; border-color: #7dffb0; display: none; }
+      #chat { position: fixed; bottom: 130px; left: 50%; transform: translateX(-50%); width: 320px; font: inherit; font-size: 14px; padding: 8px 10px; background: #0e0b16; color: #f3e9d8; border: 1px solid #ffb347; border-radius: 4px; display: none; outline: none; }
+      #end { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 12px; background: rgba(8, 5, 13, .6); font-size: 56px; letter-spacing: 8px; color: #f3e9d8; pointer-events: none; }
+      #end small { font-size: 14px; letter-spacing: 2px; color: #a8927a; }
+      #pauseScreen { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; background: rgba(8, 5, 13, .7); z-index: 10; }
+      #pauseScreen span { font-size: 56px; letter-spacing: 10px; color: #ffb347; }
+      #pauseScreen button { font-size: 16px; padding: 8px 24px; }
+      #pauseScreen small { color: #a8927a; font-size: 13px; letter-spacing: 1px; }
+      #minimapBox { position: fixed; right: 16px; bottom: 16px; padding: 6px; }
+      #minimap { display: block; width: 360px; height: 180px; cursor: crosshair; image-rendering: pixelated; }
+      #help { position: fixed; bottom: 8px; left: 8px; padding: 6px 10px; color: #a8927a; max-width: 300px; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="top" class="box">
+      <span>METAL <b id="metal">0</b></span>
+      <span>POBLACIÓN <b id="pop">0</b></span>
+      <span id="gen" class="genTag">GEN-1</span>
+      <button id="idle" title="Ir al siguiente obrero ocioso (tecla I)"><kbd>I</kbd> OCIOSOS <b id="idleCount">0</b></button>
+      <span class="speed">VELOCIDAD <button data-speed="1" class="on">1x</button> <button data-speed="1.5">1.5x</button> <button data-speed="2">2x</button> <button data-speed="3">3x</button></span>
+      <button id="mute" title="Activar o silenciar el sonido">Sonido: sí</button>
+      <button id="fullscreen" title="Pantalla completa (tecla F)"><kbd>F</kbd> Completa</button>
+      <span class="grow"></span>
+      <span class="dim" id="debug"></span>
+      <button id="replay" title="Descargar replay de la partida">Guardar</button>
+      <button id="load" title="Cargar un replay y continuar desde ahí">Cargar</button>
+      <input id="loadFile" type="file" accept=".json,application/json" hidden />
+    </div>
+    <div id="alert" class="box"></div>
+    <div id="toast" class="box"></div>
+    <input id="chat" placeholder="Código de truco… (Enter para enviar, Esc para cerrar)" autocomplete="off" />
+    <div id="pauseScreen"><span>PAUSA</span><button id="resume">Continuar</button><small>Esc o P para continuar</small></div>
+    <div id="end"><span id="endText"></span><small>Partida terminada · recarga la página para jugar otra</small></div>
+    <div id="minimapBox" class="box"><canvas id="minimap"></canvas></div>
+    <div id="panel" class="box"><div id="info"></div><div id="queue"></div><div id="actions"></div></div>
+    <div id="help" class="box">Arrastrar: seleccionar<br />Clic der.: mover · atacar · recolectar · construir<br />Clic der. con edificio: punto de reunión<br />Clic der. con obreros en edificio dañado: reparar<br />Clic en el cuadro de cola: cancelar una<br />Doble clic: todas las del mismo tipo en pantalla<br />Q W E / A S D: acciones del panel<br />Q con militares: avanzar atacando (luego clic)<br />Flechas, borde de pantalla o botón central: cámara · Rueda: zoom<br />Alt: ver la red de energía · Espacio: ir al cuartel general · I: siguiente obrero ocioso · Esc: cancelar o pausa · F: pantalla completa · Enter: trucos</div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
