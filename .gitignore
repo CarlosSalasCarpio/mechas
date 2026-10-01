@@ -8,3 +8,4 @@ tsconfig.tsbuildinfo
 art/models/
 art/sprites/
 art/units/
+__pycache__/
