@@ -19,6 +19,7 @@ export type Fx =
   | { kind: 'launch'; unit: number; utype: UnitType; owner: number; x: number; y: number; projectile: number }
   | { kind: 'explosion'; owner: number; x: number; y: number; splash: number; utype: UnitType }
   | { kind: 'towerShot'; owner: number; x: number; y: number; target: number; tx: number; ty: number }
+  | { kind: 'income'; owner: number; x: number; y: number; amount: number }
   | { kind: 'reactor'; owner: number; x: number; y: number; radius: number }
   | { kind: 'researched'; owner: number; x: number; y: number; tech: TechId }
   | { kind: 'deployed'; unit: number; owner: number; x: number; y: number; on: boolean }
@@ -33,6 +34,10 @@ export const POP_CAP = 200;
 export const CHEAT_POP_CAP = 1000;
 
 export interface PlayerState {
+  /** Equipo: los jugadores del mismo equipo son aliados (no se atacan y comparten visión). */
+  team: number;
+  /** Eliminado (perdió su cuartel general). */
+  defeated: boolean;
   metal: number;
   /** Truco de desarrollo: construcción y producción instantáneas. */
   instant: boolean;
@@ -84,7 +89,7 @@ export interface State {
   events: GameEvent[];
   fx: Fx[];
   projectiles: Projectile[];
-  /** Jugador ganador, o -1 mientras la partida sigue. */
+  /** Equipo ganador, o -1 mientras la partida sigue. */
   winner: number;
   /** Vetas de energía: casilla central donde puede ir una central (fijas, no se agotan). */
   vents: { tx: number; ty: number }[];
@@ -100,6 +105,11 @@ export interface State {
   explored: Uint8Array;
   visionVersion: number;
   nextId: number;
+}
+
+/** ¿Son enemigos? (Distinto equipo.) */
+export function hostile(st: State, a: number, b: number): boolean {
+  return st.players[a].team !== st.players[b].team;
 }
 
 export function addUnit(st: State, owner: number, x: number, y: number, type: UnitType = 'soldier'): Unit {

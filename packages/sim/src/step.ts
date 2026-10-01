@@ -5,9 +5,9 @@ import { isWalkable, isWalkableSub, tileOf, type GameMap } from './map';
 import { clamp, idiv, isqrt } from './math';
 import { descend, distanceField, findPath, INF, lineWalkable, toWaypoints } from './path';
 import { CARRY, GATHER_TICKS, type MetalNode } from './resource';
-import { addBuilding, addUnit, CHEAT_POP_CAP, POP_CAP, popUsed, type State } from './state';
+import { addBuilding, addUnit, CHEAT_POP_CAP, hostile, POP_CAP, popUsed, type State } from './state';
 import { BATTERY_RECHARGE, UNITS, type QueuedOrder, type Unit } from './unit';
-import { attackDamage, batteryMax, BUILDING_GEN, carryCap, gatherTicks, refreshUnit, TECHS, towerDamage, UNIT_GEN } from './tech';
+import { attackDamage, batteryMax, BUILDING_GEN, carryCap, gatherTicks, refreshUnit, RELAY_HP, TECHS, towerDamage, UNIT_GEN } from './tech';
 import { canPlaceBuilding, isPowered, nearestPoweredTile, updatePower } from './power';
 import { updateVision } from './vision';
 
@@ -60,6 +60,7 @@ export function step(st: State, cmds: readonly Command[]): void {
     if (b.complete) produce(st, b);
   }
 
+  plantIncome(st);
   const grid = buildGrid(st);
   for (const b of st.buildings) if (b.hp > 0 && b.complete && BUILDINGS[b.type].attack) towerThink(st, b, grid);
   for (const u of st.units) if (u.hp > 0) think(st, u, grid);
@@ -68,15 +69,55 @@ export function step(st: State, cmds: readonly Command[]): void {
   separate(st);
   removeDead(st);
   updateVision(st);
-  if (st.winner < 0) {
-    // Pierde quien se queda sin cuartel general.
-    const alive = st.players.map((_, p) => st.buildings.some((b) => b.owner === p && b.type === 'hq'));
-    if (alive.filter(Boolean).length === 1) st.winner = alive.indexOf(true);
-  }
+  eliminate(st);
   st.tick++;
 }
 
 /** Termina un edificio. El truco instantáneo lo deja con la vida completa; los obreros, con la que acumularon. */
+/**
+ * Quien se queda sin cuartel general queda eliminado: sus unidades y edificios desaparecen. Gana el
+ * equipo que queda en pie.
+ */
+function eliminate(st: State): void {
+  if (st.winner >= 0) return;
+  let changed = false;
+  st.players.forEach((pl, p) => {
+    if (pl.defeated || st.buildings.some((b) => b.owner === p && b.type === 'hq')) return;
+    pl.defeated = true;
+    changed = true;
+    for (const u of st.units) if (u.owner === p) st.byId.delete(u.id);
+    st.units = st.units.filter((u) => u.owner !== p);
+    for (const b of st.buildings) {
+      if (b.owner !== p) continue;
+      st.buildingsById.delete(b.id);
+      occupyRect(st.map, b.tx, b.ty, b.size, 0);
+    }
+    st.buildings = st.buildings.filter((b) => b.owner !== p);
+    st.projectiles = st.projectiles.filter((pr) => pr.owner !== p);
+  });
+  if (!changed) return;
+  const teams = new Set(st.players.filter((pl) => !pl.defeated).map((pl) => pl.team));
+  if (teams.size === 1) st.winner = [...teams][0];
+}
+
+/** Metal por central extra cada 10 s en Gen-3 (30 por minuto): poco, pero sostiene el final de la partida. */
+const PLANT_INCOME = 5;
+const PLANT_INCOME_TICKS = 200;
+
+/** En Gen-3, cada central terminada y con energía, a partir de la segunda, produce un goteo de metal. */
+function plantIncome(st: State): void {
+  if (st.tick % PLANT_INCOME_TICKS !== 0 || st.tick === 0) return;
+  st.players.forEach((pl, p) => {
+    if (pl.gen < 3 || pl.defeated) return;
+    const plants = st.buildings.filter((b) => b.owner === p && b.type === 'plant' && b.complete && b.powered);
+    for (const b of plants.slice(1)) {
+      pl.metal += PLANT_INCOME;
+      const c = buildingCenter(b);
+      st.fx.push({ kind: 'income', owner: p, x: c.x, y: c.y, amount: PLANT_INCOME });
+    }
+  });
+}
+
 function finish(st: State, b: Building, heal = true): void {
   b.complete = true;
   b.progress = BUILDINGS[b.type].buildTime;
@@ -230,7 +271,7 @@ function applyCommand(st: State, c: Command): void {
     }
     case 'attack': {
       const t = st.byId.get(c.target) ?? st.buildingsById.get(c.target);
-      if (!t || t.owner === c.player || t.hp <= 0) return;
+      if (!t || !hostile(st, t.owner, c.player) || t.hp <= 0) return;
       for (const u of ownedUnits(st, c.player, c.units)) command(u, { kind: 'attack', target: t.id, explicit: true });
       return;
     }
@@ -253,6 +294,7 @@ function applyCommand(st: State, c: Command): void {
       if (!canPlaceBuilding(st, c.building, Math.trunc(c.tx), Math.trunc(c.ty))) return;
       const b = addBuilding(st, c.player, c.building, Math.trunc(c.tx), Math.trunc(c.ty), false);
       if (!b) return;
+      if (b.type === 'relay') b.maxHp = RELAY_HP[pl.gen];
       pl.metal -= s.cost;
       if (pl.instant) finish(st, b);
       else if (c.queued) for (const u of workers) enqueue(st, u, { kind: 'build', target: b.id });
@@ -433,8 +475,10 @@ function battleFormation(m: GameMap, field: Int32Array, us: Unit[], x: number, y
   let depth = 0;
   for (const block of blocks.values()) {
     const r = block[0].radius;
-    const gapLat = 2 * r + 40;
-    const gapDep = 2 * r + 56;
+    // La infantería marcha abierta (unas 0,8 casillas entre soldados) para no caer en bloque ante el daño en área.
+    const open = block[0].type === 'soldier' ? 200 : 0;
+    const gapLat = Math.max(2 * r + 40, open);
+    const gapDep = Math.max(2 * r + 56, open);
     const cols = Math.min(block.length, Math.max(3, Math.ceil(Math.sqrt(block.length * 3))));
     // Dentro del bloque, cada unidad va a la columna que le queda más a mano para no cruzarse.
     const side = block.slice().sort((a, b) => a.x * lx + a.y * ly - (b.x * lx + b.y * ly) || a.id - b.id);
@@ -532,6 +576,12 @@ function advanceResearch(st: State, b: Building): void {
   pl.techs.push(r.tech);
   if (r.tech === 'gen2' || r.tech === 'gen3') {
     pl.gen = r.tech === 'gen2' ? 2 : 3;
+    // Las antenas existentes ganan resistencia con la nueva generación (conservan la proporción de vida).
+    for (const o of st.buildings) {
+      if (o.owner !== b.owner || o.type !== 'relay') continue;
+      o.hp = Math.max(1, Math.trunc((o.hp * RELAY_HP[pl.gen]) / o.maxHp));
+      o.maxHp = RELAY_HP[pl.gen];
+    }
     st.events.push({ tick: st.tick, player: b.owner, kind: 'generation', gen: pl.gen });
     if (st.events.length > MAX_EVENTS) st.events.shift();
   }
@@ -744,7 +794,7 @@ function hit(st: State, u: Unit, t: Aim, grid: Grid): void {
     for (let tx = Math.max(0, cx - r); tx <= Math.min(w - 1, cx + r); tx++) {
       for (let i = grid.head[ty * w + tx]; i !== -1; i = grid.next[i]) {
         const o = st.units[i];
-        if (o.owner === u.owner || o.hp <= 0) continue;
+        if (!hostile(st, o.owner, u.owner) || o.hp <= 0) continue;
         const reach = u.splash + o.radius;
         if ((o.x - t.x) ** 2 + (o.y - t.y) ** 2 <= reach * reach) o.hp -= u.damage;
       }
@@ -765,14 +815,14 @@ function flyProjectiles(st: State, grid: Grid): void {
       for (let tx = Math.max(0, cx - r); tx <= Math.min(w - 1, cx + r); tx++) {
         for (let i = grid.head[ty * w + tx]; i !== -1; i = grid.next[i]) {
           const o = st.units[i];
-          if (o.owner === p.owner || o.hp <= 0) continue;
+          if (!hostile(st, o.owner, p.owner) || o.hp <= 0) continue;
           const reach = p.splash + o.radius;
           if ((o.x - p.x1) ** 2 + (o.y - p.y1) ** 2 <= reach * reach) o.hp -= p.damage;
         }
       }
     }
     for (const b of st.buildings) {
-      if (b.owner === p.owner || b.hp <= 0) continue;
+      if (!hostile(st, b.owner, p.owner) || b.hp <= 0) continue;
       const x = clamp(p.x1, b.tx * SUB, (b.tx + b.size) * SUB);
       const y = clamp(p.y1, b.ty * SUB, (b.ty + b.size) * SUB);
       if ((x - p.x1) ** 2 + (y - p.y1) ** 2 <= p.splash * p.splash) b.hp -= p.vsBuilding;
@@ -934,7 +984,7 @@ function towerThink(st: State, b: Building, grid: Grid): void {
       for (let tx = Math.max(0, cx - r); tx <= Math.min(w - 1, cx + r); tx++) {
         for (let i = grid.head[ty * w + tx]; i !== -1; i = grid.next[i]) {
           const o = st.units[i];
-          if (o.owner === b.owner || o.hp <= 0 || !inRange(o)) continue;
+          if (!hostile(st, o.owner, b.owner) || o.hp <= 0 || !inRange(o)) continue;
           const d = (o.x - c.x) ** 2 + (o.y - c.y) ** 2;
           if (d < bestD || (d === bestD && t && o.id < t.id)) {
             t = o;
@@ -1025,7 +1075,7 @@ function acquire(st: State, u: Unit, grid: Grid): number {
   let best = 0;
   let bestGap = u.sight + 1;
   for (const b of st.buildings) {
-    if (b.owner === u.owner || b.hp <= 0) continue;
+    if (!hostile(st, b.owner, u.owner) || b.hp <= 0) continue;
     const p = nearestPoint(b, u.x, u.y);
     const gap = isqrt((p.x - u.x) ** 2 + (p.y - u.y) ** 2);
     if (gap < bestGap && reachable(st, u, p.x, p.y, gap - u.radius)) {
@@ -1049,7 +1099,7 @@ function nearestEnemyUnit(st: State, u: Unit, grid: Grid): Unit | null {
     for (let tx = Math.max(0, cx - r); tx <= Math.min(w - 1, cx + r); tx++) {
       for (let i = grid.head[ty * w + tx]; i !== -1; i = grid.next[i]) {
         const o = st.units[i];
-        if (o.owner === u.owner || o.hp <= 0) continue;
+        if (!hostile(st, o.owner, u.owner) || o.hp <= 0) continue;
         const d = (o.x - u.x) ** 2 + (o.y - u.y) ** 2;
         if (d >= bestD && !(d === bestD && best && o.id < best.id)) continue;
         if (!reachable(st, u, o.x, o.y, isqrt(d) - u.radius - o.radius)) continue;

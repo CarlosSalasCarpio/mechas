@@ -1,6 +1,8 @@
 import { Application, Graphics } from 'pixi.js';
 import {
   aiCommands,
+  hostile,
+  MODES,
   BUILDING_GEN,
   TECH_ORDER,
   TECHS,
@@ -26,8 +28,10 @@ import {
   type Command,
   type Unit,
   type UnitType,
+  coverOf,
+  linkOf,
 } from '@epocas/sim';
-import { BUILDING_NAMES, GameView, isoX, isoY, screenToWorld, UNIT_BOX, type Pos } from '@epocas/render';
+import { assignPlayerColors, BUILDING_NAMES, GameView, isoX, isoY, loadDecor, loadTerrainTextures, loadUnitArt, prewarmTextures, screenToWorld, UNIT_BOX, type Pos } from '@epocas/render';
 import { Sfx } from './audio';
 import { Minimap } from './minimap';
 
@@ -35,8 +39,11 @@ const PLAYER = 0;
 const params = new URLSearchParams(location.search);
 const seed = Number(params.get('seed') ?? 42);
 const perSide = Number(params.get('n') ?? 0);
-const AI_PLAYER = 1;
+const mode = params.get('mode') && MODES[params.get('mode')!] ? params.get('mode')! : '1v1';
+const teams = MODES[mode];
 const aiOn = params.get('ai') !== '0';
+/** Sin parámetros de partida se muestra el menú principal (con una partida quieta de fondo). */
+const inGame = params.has('play') || params.has('load') || params.has('n');
 
 const UNIT_NAMES: Record<UnitType, [string, string]> = {
   worker: ['obrero', 'obreros'],
@@ -57,17 +64,21 @@ const TECH_INFO: Record<TechId, [string, string]> = {
   composite: ['Blindaje compuesto', 'Mechas y artillería +25 % de vida'],
   lithium: ['Baterías de litio', 'Batería fuera de la red de 12 a 20 s'],
   piercing: ['Munición perforante', 'Torres +50 % de daño'],
-  amplifiers: ['Amplificadores', 'Antenas y camiones cubren y ven 8 casillas'],
+  amplifiers: ['Amplificadores', 'Antenas y camiones cubren y ven 2 casillas más'],
   rangefinder: ['Telémetro', 'Artillería +2 casillas de alcance y visión'],
 };
 const BUILDABLE: BuildingType[] = ['depot', 'barracks', 'hangar', 'cradle', 'tower', 'plant', 'relay'];
 
-const st = createGame({ seed, perSide });
+const st = createGame({ seed, perSide, teams });
+assignPlayerColors(teams, PLAYER);
 const app = new Application();
 await app.init({ resizeTo: window, background: '#14170f', antialias: true });
 document.body.prepend(app.canvas);
 
-const view = new GameView(st.map, PLAYER);
+await Promise.all([loadTerrainTextures(), loadDecor(), loadUnitArt()]);
+const view = new GameView(st.map, PLAYER, app.renderer);
+const renderErrors = new Set<string>();
+prewarmTextures(app.renderer);
 // Acceso para pruebas automatizadas del navegador.
 (window as unknown as { __game: unknown }).__game = { st, world: null as unknown, pending: null as unknown };
 const dragGfx = new Graphics();
@@ -162,6 +173,8 @@ let dragStart: Pos | null = null;
 let panFrom: Pos | null = null;
 let mouse: Pos = { x: 0, y: 0 };
 let mouseInside = false;
+/** El cursor está sobre la interfaz (barra, panel, minimapa): ahí el desplazamiento por borde solo actúa pegado al borde. */
+let overHud = false;
 // Al salir el cursor de la ventana, `mouseout` llega sin destino: dejar de desplazar la cámara.
 addEventListener('mouseout', (e) => {
   if (!e.relatedTarget) mouseInside = false;
@@ -248,13 +261,13 @@ type Intent = 'attack' | 'gather' | 'construct' | 'repair' | 'none';
 function intentAt(px: number, py: number): { kind: Intent; target: number } {
   const us = selectedUnits();
   if (us.length === 0) return { kind: 'none', target: 0 };
-  const enemy = unitAt(px, py, (u) => u.owner !== PLAYER && isVisible(st, PLAYER, u.x, u.y));
+  const enemy = unitAt(px, py, (u) => hostile(st, u.owner, PLAYER) && isVisible(st, PLAYER, u.x, u.y));
   if (enemy) return { kind: 'attack', target: enemy.id };
   const { tx, ty } = tileAt(px, py);
   const e = entityAtTile(st, tx, ty);
   const hasWorkers = us.some((u) => u.type === 'worker');
   // Edificio enemigo: atacable si está a la vista o recordado (zona explorada).
-  if (e?.kind === 'building' && e.ent.owner !== PLAYER && isExplored(st, PLAYER, (tx + 0.5) * SUB, (ty + 0.5) * SUB)) return { kind: 'attack', target: e.ent.id };
+  if (e?.kind === 'building' && hostile(st, e.ent.owner, PLAYER) && isExplored(st, PLAYER, (tx + 0.5) * SUB, (ty + 0.5) * SUB)) return { kind: 'attack', target: e.ent.id };
   if (e?.kind === 'node' && !isExplored(st, PLAYER, (tx + 0.5) * SUB, (ty + 0.5) * SUB)) return { kind: 'none', target: 0 };
   if (e?.kind === 'building' && !e.ent.complete && hasWorkers) return { kind: 'construct', target: e.ent.id };
   if (e?.kind === 'building' && e.ent.hp < e.ent.maxHp && hasWorkers) return { kind: 'repair', target: e.ent.id };
@@ -415,6 +428,9 @@ function playFx(): void {
       case 'repair':
         if (mine) sfx.play('repair', pan, vol);
         break;
+      case 'income':
+        if (mine) sfx.play('deliver', pan, vol * 0.5);
+        break;
       case 'deliver':
         if (mine) sfx.play('deliver', pan, vol);
         break;
@@ -430,6 +446,7 @@ function playFx(): void {
 addEventListener('pointermove', (e) => {
   mouse = { x: e.clientX, y: e.clientY };
   mouseInside = true;
+  overHud = e.target !== app.canvas;
   if (panFrom) {
     world.x += e.clientX - panFrom.x;
     world.y += e.clientY - panFrom.y;
@@ -498,17 +515,22 @@ let speed = 1;
 let acc = 0;
 let prev = new Map<number, Pos>();
 let simMs = 0;
+/** Tiempo de preparación del dibujo por frame (sincronizar sprites y efectos), para el contador de rendimiento. */
+let renderMs = 0;
 let hash = hashState(st);
 
 app.ticker.add((t) => {
   if (!paused) {
     acc += t.deltaMS * speed;
     let n = 0;
-    const maxSteps = Math.ceil(5 * speed);
-    while (acc >= TICK_MS && n < maxSteps) {
+    // Presupuesto por frame: pocos ticks y como mucho ~20 ms de simulación. Si el equipo no da abasto,
+    // el juego va más lento en vez de acumular ticks atrasados (eso era lo que lo congelaba).
+    const maxSteps = Math.ceil(2 * speed) + 1;
+    const budget = performance.now() + 20;
+    while (acc >= TICK_MS && n < maxSteps && performance.now() < budget) {
       prev = new Map(st.units.map((u) => [u.id, { x: u.x, y: u.y }]));
       const cmds = pending.splice(0);
-      if (aiOn) cmds.push(...aiCommands(st, AI_PLAYER));
+      if (aiOn) for (let p = 1; p < st.players.length; p++) cmds.push(...aiCommands(st, p));
       const t0 = performance.now();
       step(st, cmds);
       playFx();
@@ -518,14 +540,14 @@ app.ticker.add((t) => {
       acc -= TICK_MS;
       n++;
     }
-    if (n === maxSteps) acc = 0;
+    if (acc > TICK_MS * maxSteps) acc = 0;
   }
 
   const pan = 12 * t.deltaTime;
   // Cámara: flechas o ratón en el borde de la ventana (como en AoE).
   // Zona de desplazamiento dentro de la página (no hace falta tocar el borde de la ventana): más cerca
   // del borde, más rápido. Así el cursor no llega a las pestañas, la barra del sistema ni otro monitor.
-  const EDGE = 40;
+  const EDGE = overHud ? 6 : 40;
   const inside = mouseInside && !dragStart && !panFrom && !miniDrag && document.hasFocus();
   const push = (d: number) => (inside && d < EDGE ? 0.35 + 0.9 * (1 - Math.max(0, d) / EDGE) : 0);
   const left = Math.max(keys.has('arrowleft') ? 1 : 0, push(mouse.x));
@@ -554,11 +576,25 @@ app.ticker.add((t) => {
     keys.has('alt') ||
       placing === 'plant' ||
       placing === 'relay' ||
-      [...selected].some((id) => st.byId.get(id)?.needsPower || BUILDINGS[st.buildingsById.get(id)?.type ?? 'hq'].power),
+      [...selected].some((id) => st.byId.get(id)?.needsPower || st.byId.get(id)?.type === 'truck' || BUILDINGS[st.buildingsById.get(id)?.type ?? 'hq'].power),
   );
-  view.sync(st, prev, paused ? 1 : acc / TICK_MS, selected);
+  const r0 = performance.now();
+  const tl = world.toLocal({ x: 0, y: 0 });
+  const br = world.toLocal({ x: app.screen.width, y: app.screen.height });
+  view.setViewport(tl.x, tl.y, br.x, br.y);
+  // Un fallo de dibujo no debe parar la partida: se registra (una vez por mensaje) y el juego sigue.
+  try {
+    view.sync(st, prev, paused ? 1 : acc / TICK_MS, selected);
+  } catch (e) {
+    const msg = String((e as Error)?.stack ?? e);
+    if (!renderErrors.has(msg)) {
+      renderErrors.add(msg);
+      console.error('Error de dibujo (la partida sigue):', e);
+    }
+  }
   view.updateMarkers(t.deltaMS / 1000);
   view.updateFx(paused ? 0 : t.deltaMS / 1000);
+  renderMs = renderMs * 0.9 + (performance.now() - r0) * 0.1;
 });
 
 // ------------------------------------------------------------ HUD
@@ -574,8 +610,37 @@ let lastEvent: (typeof st.events)[number] | undefined;
 /** Rejilla de atajos al estilo AoE: la posición del botón en el panel decide su tecla. */
 const HOTKEYS = ['q', 'w', 'e', 'a', 's', 'd', 'z', 'x', 'c'];
 
+const svg = (body: string) => `<svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">${body}</svg>`;
+/** Iconos del panel: siluetas simples, del color de su sección. */
+const ICONS: Record<string, string> = {
+  worker: svg('<circle cx="13" cy="8" r="3"/><path d="M9 7h8M9 22v-8h8v8M17 14l5-6"/>'),
+  soldier: svg('<circle cx="12" cy="7" r="3"/><path d="M9 22v-9h6v9M8 18l12-10"/>'),
+  mech: svg('<rect x="10" y="3" width="6" height="4"/><path d="M8 8h10l-1 8H9zM10 16l-1 7M16 16l1 7M8 9l-3 7M18 9l3 7"/>'),
+  artillery: svg('<path d="M8 9h9l-1 7H9zM10 16l-1 7M15 16l1 7M15 9l5-7"/><rect x="10" y="5" width="4" height="4"/>'),
+  truck: svg('<rect x="3" y="10" width="13" height="7"/><path d="M16 12h4l3 3v2h-7M8 10V4l6 3"/><circle cx="7" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>'),
+  colossus: svg('<path d="M13 2l5 8-5 7-5-7z"/><path d="M10 15l-3 9M16 15l3 9"/><ellipse cx="13" cy="2.5" rx="5" ry="1.5"/>'),
+  siege: svg('<path d="M5 12h14l2-3H7zM8 12l-4 11M18 12l4 11M11 12l-2 11M15 12l2 11M9 9l3-6h3l-2 6"/>'),
+  building: svg('<path d="M3 10l10-6 10 6-10 6z"/><path d="M3 10v8l10 6 10-6v-8M13 16v8"/>'),
+  tech: svg('<circle cx="13" cy="13" r="4"/><path d="M13 3v4M13 19v4M3 13h4M19 13h4M6 6l3 3M17 17l3 3M20 6l-3 3M9 17l-3 3"/>'),
+  gen: svg('<path d="M5 14l8-7 8 7M5 21l8-7 8 7"/>'),
+  attack: svg('<path d="M4 4l14 14M14 22l8-8M18 18l4 4"/>'),
+  stop: svg('<rect x="6" y="6" width="14" height="14"/>'),
+};
+
+/** Nombre de otro jugador desde el punto de vista del humano. */
+function who(p: number): string {
+  return hostile(st, p, PLAYER) ? `El enemigo (J${p + 1})` : `Tu aliado (J${p + 1})`;
+}
+
+/** Grupo de una acción en el panel: cada uno con su sección, color e icono. */
+type ActionGroup = 'unit' | 'gen' | 'tech' | 'build' | 'order';
+const GROUP_TITLES: Record<ActionGroup, string> = { unit: 'Unidades', gen: 'Generación', tech: 'Tecnologías', build: 'Construir', order: 'Órdenes' };
+
 interface Action {
   key: string;
+  group: ActionGroup;
+  /** Icono SVG (en línea, del color del texto). */
+  icon: string;
   label: string;
   sub: string;
   enabled: boolean;
@@ -589,11 +654,14 @@ function currentActions(): Action[] {
   const us = selectedUnits();
   const bs = selectedBuildings().filter((b) => b.complete);
   const out: Omit<Action, 'key'>[] = [];
+  const cap = (x: string) => x[0].toUpperCase() + x.slice(1);
   const trucks = us.filter((u) => u.type === 'truck');
   if (trucks.length > 0 && trucks.length === us.length) {
     // Solo camiones: desplegar o replegar.
     const anyMobile = trucks.some((u) => u.deployState === 0);
     out.push({
+      group: 'order',
+      icon: ICONS.truck,
       label: anyMobile ? 'Desplegar antena' : 'Replegar',
       sub: anyMobile ? 'funciona como antena; no se mueve' : 'vuelve a poder moverse',
       enabled: true,
@@ -604,6 +672,8 @@ function currentActions(): Action[] {
     });
   } else if (selectedMilitary().length > 0) {
     out.push({
+      group: 'order',
+      icon: ICONS.attack,
       label: `Avanzar atacando${targeting ? ' ◂' : ''}`,
       sub: 'luego clic en el mapa',
       enabled: true,
@@ -614,6 +684,8 @@ function currentActions(): Action[] {
       },
     });
     out.push({
+      group: 'order',
+      icon: ICONS.stop,
       label: 'Detener',
       sub: 'olvidan su orden',
       enabled: true,
@@ -629,6 +701,8 @@ function currentActions(): Action[] {
       const needGen = BUILDING_GEN[t] ?? 1;
       const locked = needGen > st.players[PLAYER].gen;
       out.push({
+        group: 'build',
+        icon: ICONS.building,
         label: `${BUILDING_NAMES[t]}${placing === t ? ' ◂' : ''}`,
         sub: locked ? `Requiere Gen-${needGen}` : `${s.cost} metal`,
         enabled: !locked && metal >= s.cost,
@@ -643,7 +717,9 @@ function currentActions(): Action[] {
       const u = UNITS[unit];
       const locked = UNIT_GEN[unit] > st.players[PLAYER].gen;
       out.push({
-        label: `Entrenar ${UNIT_NAMES[unit][0]}${bs.length > 1 ? ` ×${bs.length}` : ''}`,
+        group: 'unit',
+        icon: ICONS[unit],
+        label: `${cap(UNIT_NAMES[unit][0])}${bs.length > 1 ? ` ×${bs.length}` : ''}`,
         sub: locked ? `Requiere Gen-${UNIT_GEN[unit]}` : `${u.cost} metal c/u · ${u.trainTime / 20} s · Shift: 5`,
         enabled: !locked && metal >= u.cost && bs.some((b) => b.queue.length < 10),
         run: (shift) => {
@@ -673,6 +749,8 @@ function currentActions(): Action[] {
       const free = bs.find((b) => !b.research);
       const why = t.gen > pl.gen ? `Requiere Gen-${t.gen}` : missing.length ? `Requiere ${missing.map((r) => BUILDING_NAMES[r].toLowerCase()).join(' y ')}` : !free ? 'Edificio ocupado' : `${t.cost} metal · ${t.time / 20} s`;
       out.push({
+        group: tech === 'gen2' || tech === 'gen3' ? 'gen' : 'tech',
+        icon: tech === 'gen2' || tech === 'gen3' ? ICONS.gen : ICONS.tech,
         label: TECH_INFO[tech][0],
         sub: why === `${t.cost} metal · ${t.time / 20} s` ? `${TECH_INFO[tech][1]} · ${why}` : why,
         enabled: t.gen <= pl.gen && missing.length === 0 && !!free && metal >= t.cost,
@@ -684,13 +762,18 @@ function currentActions(): Action[] {
       });
     }
   }
-  return out.map((a, i) => ({ ...a, key: HOTKEYS[i] ?? '' }));
+  // Las teclas siguen el orden visual de las secciones: primero unidades, luego generación y tecnologías.
+  const order: ActionGroup[] = ['unit', 'gen', 'tech', 'build', 'order'];
+  return out
+    .map((a, i) => ({ a, i }))
+    .sort((x, y) => order.indexOf(x.a.group) - order.indexOf(y.a.group) || x.i - y.i)
+    .map(({ a }, i) => ({ ...a, key: HOTKEYS[i] ?? '' }));
 }
 
 /** Stats de un tipo de unidad, en unidades legibles (casillas, segundos). */
 function statsLine(t: UnitType): string {
   const u = UNITS[t];
-  if (u.damage === 0) return `Sin armas · Velocidad ${(u.speed * 20 / SUB).toLocaleString('es', { maximumFractionDigits: 1 })} cas./s · Visión ${u.sight / SUB} cas. · desplegado cubre y ve ${BUILDINGS.relay.power!.cover} cas.`;
+  if (u.damage === 0) return `Sin armas · Velocidad ${(u.speed * 20 / SUB).toLocaleString('es', { maximumFractionDigits: 1 })} cas./s · Visión ${u.sight / SUB} cas. · desplegado cubre y ve ${coverOf(st, PLAYER, BUILDINGS.relay.power!.cover, true)} cas.`;
   const tiles = (v: number) => (v / SUB).toLocaleString('es', { maximumFractionDigits: 1 });
   const parts = [
     `Ataque ${u.damage}${u.vsBuilding !== u.damage ? ` (${u.vsBuilding} a edificios)` : ''}${u.splash ? ` en área de ${tiles(u.splash)} cas.` : ''}`,
@@ -731,7 +814,12 @@ function renderPanel(): void {
   } else if (b) {
     const s = BUILDINGS[b.type];
     lines.push(`${BUILDING_NAMES[b.type].toUpperCase()} · vida ${Math.max(0, b.hp)}/${b.maxHp}`);
-    if (s.power && b.complete) lines.push(b.powered ? `Con energía · cubre ${s.power.cover} cas. · enlaza a ${s.power.link} cas.` : 'SIN ENERGÍA: no enlaza con ninguna central');
+    if (s.power && b.complete) {
+      const relay = b.type === 'relay';
+      const cover = coverOf(st, b.owner, s.power.cover, relay);
+      const link = linkOf(st, b.owner, s.power.link, relay);
+      lines.push(b.powered ? `Con energía · cubre ${cover} cas. · enlaza a ${link} cas.` : 'SIN ENERGÍA: no enlaza con ninguna central');
+    }
     if (!b.complete) lines.push(`En construcción: ${Math.floor((100 * b.progress) / s.buildTime)}%`);
     else if (s.trains.length) {
       const q = b.queue.length;
@@ -756,21 +844,35 @@ function renderPanel(): void {
   const list = currentActions();
   panel.style.display = lines.length ? 'flex' : 'none';
   info.textContent = lines.join('\n');
-  const key = list.map((a) => `${a.key}${a.label}${a.enabled}`).join('|');
+  const key = list.map((a) => `${a.key}${a.label}${a.sub}${a.enabled}`).join('|');
   if (key !== actionsKey) {
     actionsKey = key;
-    actions.replaceChildren(
-      ...list.map((a) => {
+    // Una sección por grupo (unidades, generación, tecnologías…), cada una con su color.
+    const sections: HTMLElement[] = [];
+    for (const group of ['unit', 'gen', 'tech', 'build', 'order'] as ActionGroup[]) {
+      const items = list.filter((a) => a.group === group);
+      if (items.length === 0) continue;
+      const sec = document.createElement('div');
+      sec.className = `sec ${group}`;
+      const h = document.createElement('h4');
+      h.textContent = GROUP_TITLES[group];
+      const row = document.createElement('div');
+      row.className = 'row';
+      for (const a of items) {
         const el = document.createElement('button');
-        el.innerHTML = `<span><kbd>${a.key.toUpperCase()}</kbd> ${a.label}</span><small>${a.sub}</small>`;
+        el.className = `act ${group}`;
+        el.innerHTML = `${a.icon}<span class="txt"><span class="lbl"><kbd>${a.key.toUpperCase()}</kbd>${a.label}</span><small>${a.sub}</small></span>`;
         el.disabled = !a.enabled;
         el.addEventListener('click', (ev) => {
           a.run(ev.shiftKey);
           el.blur();
         });
-        return el;
-      }),
-    );
+        row.append(el);
+      }
+      sec.append(h, row);
+      sections.push(sec);
+    }
+    actions.replaceChildren(...sections);
   }
 }
 
@@ -778,16 +880,17 @@ setInterval(() => {
   $('metal').textContent = String(st.players[PLAYER].metal);
   $('pop').textContent = `${popUsed(st, PLAYER)} / ${st.players[PLAYER].popCap}`;
   $('gen').textContent = `GEN-${st.players[PLAYER].gen} · ${GEN_NAMES[st.players[PLAYER].gen]}`;
-  $('debug').textContent = `tick ${st.tick} · ${app.ticker.FPS.toFixed(0)} fps · sim ${simMs.toFixed(2)} ms · hash ${hash.toString(16).padStart(8, '0')}${paused ? ' · PAUSA' : ''}`;
+  $('debug').textContent = `${app.ticker.FPS.toFixed(0)} fps · sim ${simMs.toFixed(1)} ms · dibujo ${renderMs.toFixed(1)} ms · ${st.units.length} unid. · tick ${st.tick}${paused ? ' · PAUSA' : ''}`;
+  (window as unknown as { __perf: object }).__perf = { fps: app.ticker.FPS, simMs, renderMs, units: st.units.length, tick: st.tick };
   renderPanel();
 
   const last = st.events[st.events.length - 1];
   if (last && last !== lastEvent) {
     if (last.kind === 'generation') {
-      alertBox.textContent = last.player === PLAYER ? `Has alcanzado la GEN-${last.gen} · ${GEN_NAMES[last.gen]}` : `El enemigo ha alcanzado la GEN-${last.gen} · ${GEN_NAMES[last.gen]}`;
+      alertBox.textContent = last.player === PLAYER ? `Has alcanzado la GEN-${last.gen} · ${GEN_NAMES[last.gen]}` : `${who(last.player)} ha alcanzado la GEN-${last.gen} · ${GEN_NAMES[last.gen]}`;
       sfx.play(last.player === PLAYER ? 'genUp' : 'alert');
     } else {
-      alertBox.textContent = last.player === PLAYER ? 'Tu Cuna ha empezado a construir un COLOSO' : 'ALERTA · El enemigo está construyendo un COLOSO';
+      alertBox.textContent = last.player === PLAYER ? 'Tu Cuna ha empezado a construir un COLOSO' : hostile(st, last.player, PLAYER) ? `ALERTA · ${who(last.player)} está construyendo un COLOSO` : `${who(last.player)} está construyendo un COLOSO`;
       sfx.play('alert');
     }
     alertBox.style.display = 'block';
@@ -798,7 +901,7 @@ setInterval(() => {
 }, 150);
 
 $('replay').addEventListener('click', () => {
-  const data = { version: 1, seed, perSide, commands: log, finalTick: st.tick, finalHash: hashState(st) };
+  const data = { version: 2, seed, perSide, mode, commands: log, finalTick: st.tick, finalHash: hashState(st) };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
   a.download = `replay-seed${seed}-t${st.tick}.json`;
@@ -868,9 +971,10 @@ function toggleChat(): void {
 const end = $('end');
 setInterval(() => {
   if (st.winner < 0 || end.style.display === 'flex') return;
-  $('endText').textContent = st.winner === PLAYER ? 'VICTORIA' : 'DERROTA';
+  const won = st.winner === st.players[PLAYER].team;
+  $('endText').textContent = won ? 'VICTORIA' : 'DERROTA';
   end.style.display = 'flex';
-  sfx.play(st.winner === PLAYER ? 'victory' : 'defeat');
+  sfx.play(won ? 'victory' : 'defeat');
 }, 500);
 
 const muteBtn = $('mute');
@@ -886,7 +990,7 @@ loadFile.addEventListener('change', async () => {
   const file = loadFile.files?.[0];
   if (!file) return;
   const text = await file.text();
-  const r = JSON.parse(text) as { seed: number; perSide: number };
+  const r = JSON.parse(text) as { seed: number; perSide: number; mode?: string };
   try {
     sessionStorage.setItem('replay', text);
   } catch {
@@ -896,6 +1000,7 @@ loadFile.addEventListener('change', async () => {
   const q = new URLSearchParams(location.search);
   q.set('seed', String(r.seed));
   q.set('n', String(r.perSide ?? 0));
+  q.set('mode', r.mode ?? '1v1');
   q.set('load', '1');
   location.search = q.toString();
 });
@@ -1063,4 +1168,46 @@ function toggleFullscreen(): void {
 $('fullscreen').addEventListener('click', (e) => {
   toggleFullscreen();
   (e.currentTarget as HTMLElement).blur();
+});
+
+// ------------------------------------------------------------ menú principal
+const menu = $('menu');
+let menuMode = mode;
+function renderModes(): void {
+  $('modes').replaceChildren(
+    ...Object.keys(MODES).map((m) => {
+      const b = document.createElement('button');
+      b.textContent = m;
+      b.className = m === menuMode ? 'on' : '';
+      b.addEventListener('click', () => {
+        menuMode = m;
+        renderModes();
+      });
+      return b;
+    }),
+  );
+}
+renderModes();
+$('newGame').addEventListener('click', () => {
+  const s = ($('seedInput') as HTMLInputElement).value.trim();
+  const q = new URLSearchParams();
+  q.set('mode', menuMode);
+  q.set('seed', s && /^[0-9]+$/.test(s) ? s : String(Math.floor(Math.random() * 1e9)));
+  q.set('play', '1');
+  location.search = q.toString();
+});
+$('menuLoad').addEventListener('click', () => loadFile.click());
+$('toMenu').addEventListener('click', () => {
+  if (st.winner < 0 && !confirm('¿Abandonar la partida y volver al menú?')) return;
+  location.search = '';
+});
+if (!inGame) {
+  menu.style.display = 'flex';
+  paused = true;
+} else $('modeTag').textContent = mode;
+
+// Si la GPU se queda sin memoria o el sistema reinicia el contexto gráfico, avisarlo en vez de congelarse sin más.
+app.canvas.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();
+  showToast('El navegador reinició los gráficos; si no se recupera, recarga la página (puedes guardar el replay antes)', '#ff4d6d');
 });

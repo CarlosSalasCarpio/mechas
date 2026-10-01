@@ -1,0 +1,6348 @@
+{
+ "frames": {
+  "truck_fire_0_3": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 132
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 132
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 132
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6783
+   }
+  },
+  "truck_fire_1_3": {
+   "frame": {
+    "x": 78,
+    "y": 0,
+    "w": 74,
+    "h": 131
+   },
+   "sourceSize": {
+    "w": 74,
+    "h": 131
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 74,
+    "h": 131
+   },
+   "anchor": {
+    "x": 0.4577,
+    "y": 0.7321
+   }
+  },
+  "truck_fire_3_3": {
+   "frame": {
+    "x": 154,
+    "y": 0,
+    "w": 91,
+    "h": 131
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 131
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 131
+   },
+   "anchor": {
+    "x": 0.3707,
+    "y": 0.7279
+   }
+  },
+  "truck_fire_4_3": {
+   "frame": {
+    "x": 247,
+    "y": 0,
+    "w": 97,
+    "h": 131
+   },
+   "sourceSize": {
+    "w": 97,
+    "h": 131
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 97,
+    "h": 131
+   },
+   "anchor": {
+    "x": 0.3632,
+    "y": 0.6708
+   }
+  },
+  "truck_fire_2_3": {
+   "frame": {
+    "x": 346,
+    "y": 0,
+    "w": 65,
+    "h": 129
+   },
+   "sourceSize": {
+    "w": 65,
+    "h": 129
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 65,
+    "h": 129
+   },
+   "anchor": {
+    "x": 0.2774,
+    "y": 0.7581
+   }
+  },
+  "truck_fire_7_3": {
+   "frame": {
+    "x": 413,
+    "y": 0,
+    "w": 74,
+    "h": 125
+   },
+   "sourceSize": {
+    "w": 74,
+    "h": 125
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 74,
+    "h": 125
+   },
+   "anchor": {
+    "x": 0.4577,
+    "y": 0.6529
+   }
+  },
+  "truck_fire_5_3": {
+   "frame": {
+    "x": 489,
+    "y": 0,
+    "w": 89,
+    "h": 124
+   },
+   "sourceSize": {
+    "w": 89,
+    "h": 124
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 89,
+    "h": 124
+   },
+   "anchor": {
+    "x": 0.3769,
+    "y": 0.6508
+   }
+  },
+  "truck_fire_6_3": {
+   "frame": {
+    "x": 580,
+    "y": 0,
+    "w": 57,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 57,
+    "h": 120
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 57,
+    "h": 120
+   },
+   "anchor": {
+    "x": 0.3139,
+    "y": 0.6399
+   }
+  },
+  "truck_fire_2_2": {
+   "frame": {
+    "x": 639,
+    "y": 0,
+    "w": 56,
+    "h": 108
+   },
+   "sourceSize": {
+    "w": 56,
+    "h": 108
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 56,
+    "h": 108
+   },
+   "anchor": {
+    "x": 0.318,
+    "y": 0.7527
+   }
+  },
+  "truck_fire_1_2": {
+   "frame": {
+    "x": 697,
+    "y": 0,
+    "w": 74,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 74,
+    "h": 107
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 74,
+    "h": 107
+   },
+   "anchor": {
+    "x": 0.4577,
+    "y": 0.7492
+   }
+  },
+  "truck_fire_0_2": {
+   "frame": {
+    "x": 773,
+    "y": 0,
+    "w": 76,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 106
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 106
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6907
+   }
+  },
+  "truck_fire_4_2": {
+   "frame": {
+    "x": 851,
+    "y": 0,
+    "w": 88,
+    "h": 105
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 105
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 105
+   },
+   "anchor": {
+    "x": 0.4005,
+    "y": 0.6599
+   }
+  },
+  "truck_fire_7_2": {
+   "frame": {
+    "x": 941,
+    "y": 0,
+    "w": 74,
+    "h": 105
+   },
+   "sourceSize": {
+    "w": 74,
+    "h": 105
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 74,
+    "h": 105
+   },
+   "anchor": {
+    "x": 0.4577,
+    "y": 0.6171
+   }
+  },
+  "truck_fire_3_2": {
+   "frame": {
+    "x": 1017,
+    "y": 0,
+    "w": 84,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 84,
+    "h": 104
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 84,
+    "h": 104
+   },
+   "anchor": {
+    "x": 0.4005,
+    "y": 0.7366
+   }
+  },
+  "truck_fire_5_2": {
+   "frame": {
+    "x": 1103,
+    "y": 0,
+    "w": 80,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 104
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 104
+   },
+   "anchor": {
+    "x": 0.4192,
+    "y": 0.5999
+   }
+  },
+  "truck_fire_6_2": {
+   "frame": {
+    "x": 1185,
+    "y": 0,
+    "w": 50,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 50,
+    "h": 104
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 50,
+    "h": 104
+   },
+   "anchor": {
+    "x": 0.3614,
+    "y": 0.5855
+   }
+  },
+  "truck_fire_2_1": {
+   "frame": {
+    "x": 1237,
+    "y": 0,
+    "w": 49,
+    "h": 90
+   },
+   "sourceSize": {
+    "w": 49,
+    "h": 90
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 49,
+    "h": 90
+   },
+   "anchor": {
+    "x": 0.367,
+    "y": 0.7032
+   }
+  },
+  "truck_fire_1_1": {
+   "frame": {
+    "x": 1288,
+    "y": 0,
+    "w": 74,
+    "h": 89
+   },
+   "sourceSize": {
+    "w": 74,
+    "h": 89
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 74,
+    "h": 89
+   },
+   "anchor": {
+    "x": 0.4577,
+    "y": 0.6982
+   }
+  },
+  "truck_fire_3_1": {
+   "frame": {
+    "x": 1364,
+    "y": 0,
+    "w": 77,
+    "h": 86
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 86
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 86
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6876
+   }
+  },
+  "truck_fire_0_1": {
+   "frame": {
+    "x": 1443,
+    "y": 0,
+    "w": 76,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 80
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 80
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.7018
+   }
+  },
+  "truck_fire_4_1": {
+   "frame": {
+    "x": 1521,
+    "y": 0,
+    "w": 79,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 79,
+    "h": 80
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 79,
+    "h": 80
+   },
+   "anchor": {
+    "x": 0.4462,
+    "y": 0.6485
+   }
+  },
+  "truck_fire_2_0": {
+   "frame": {
+    "x": 1602,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_idle_2_0": {
+   "frame": {
+    "x": 1650,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_idle_2_1": {
+   "frame": {
+    "x": 1698,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_idle_2_2": {
+   "frame": {
+    "x": 1746,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_idle_2_3": {
+   "frame": {
+    "x": 1794,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_idle_2_4": {
+   "frame": {
+    "x": 1842,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_idle_2_5": {
+   "frame": {
+    "x": 1890,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_walk_2_0": {
+   "frame": {
+    "x": 1938,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_walk_2_1": {
+   "frame": {
+    "x": 1986,
+    "y": 0,
+    "w": 47,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 47,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 47,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4009,
+    "y": 0.6609
+   }
+  },
+  "truck_walk_2_2": {
+   "frame": {
+    "x": 0,
+    "y": 134,
+    "w": 47,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 47,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 47,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4009,
+    "y": 0.6609
+   }
+  },
+  "truck_walk_2_4": {
+   "frame": {
+    "x": 49,
+    "y": 134,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_walk_2_5": {
+   "frame": {
+    "x": 97,
+    "y": 134,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_walk_2_6": {
+   "frame": {
+    "x": 145,
+    "y": 134,
+    "w": 46,
+    "h": 79
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 79
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6609
+   }
+  },
+  "truck_fire_5_1": {
+   "frame": {
+    "x": 193,
+    "y": 134,
+    "w": 77,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 78
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 78
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5711
+   }
+  },
+  "truck_fire_7_1": {
+   "frame": {
+    "x": 272,
+    "y": 134,
+    "w": 74,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 74,
+    "h": 78
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 74,
+    "h": 78
+   },
+   "anchor": {
+    "x": 0.4577,
+    "y": 0.5999
+   }
+  },
+  "truck_walk_1_1": {
+   "frame": {
+    "x": 348,
+    "y": 134,
+    "w": 75,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 78
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 78
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6576
+   }
+  },
+  "truck_walk_1_5": {
+   "frame": {
+    "x": 425,
+    "y": 134,
+    "w": 76,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 78
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 78
+   },
+   "anchor": {
+    "x": 0.4639,
+    "y": 0.6576
+   }
+  },
+  "truck_walk_2_3": {
+   "frame": {
+    "x": 503,
+    "y": 134,
+    "w": 46,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 78
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 78
+   },
+   "anchor": {
+    "x": 0.4074,
+    "y": 0.6576
+   }
+  },
+  "truck_walk_2_7": {
+   "frame": {
+    "x": 551,
+    "y": 134,
+    "w": 47,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 47,
+    "h": 78
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 47,
+    "h": 78
+   },
+   "anchor": {
+    "x": 0.4009,
+    "y": 0.6576
+   }
+  },
+  "truck_fire_1_0": {
+   "frame": {
+    "x": 600,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6543
+   }
+  },
+  "truck_fire_6_1": {
+   "frame": {
+    "x": 677,
+    "y": 134,
+    "w": 44,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4113,
+    "y": 0.5475
+   }
+  },
+  "truck_idle_1_0": {
+   "frame": {
+    "x": 723,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6543
+   }
+  },
+  "truck_idle_1_1": {
+   "frame": {
+    "x": 800,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6543
+   }
+  },
+  "truck_idle_1_2": {
+   "frame": {
+    "x": 877,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6543
+   }
+  },
+  "truck_idle_1_3": {
+   "frame": {
+    "x": 954,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6543
+   }
+  },
+  "truck_idle_1_4": {
+   "frame": {
+    "x": 1031,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6543
+   }
+  },
+  "truck_idle_1_5": {
+   "frame": {
+    "x": 1108,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6543
+   }
+  },
+  "truck_walk_1_0": {
+   "frame": {
+    "x": 1185,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6543
+   }
+  },
+  "truck_walk_1_2": {
+   "frame": {
+    "x": 1262,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6543
+   }
+  },
+  "truck_walk_1_3": {
+   "frame": {
+    "x": 1339,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6607
+   }
+  },
+  "truck_walk_1_4": {
+   "frame": {
+    "x": 1416,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6543
+   }
+  },
+  "truck_walk_1_6": {
+   "frame": {
+    "x": 1493,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6607
+   }
+  },
+  "truck_walk_1_7": {
+   "frame": {
+    "x": 1570,
+    "y": 134,
+    "w": 75,
+    "h": 77
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 77
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 77
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.6607
+   }
+  },
+  "truck_fire_3_0": {
+   "frame": {
+    "x": 1647,
+    "y": 134,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_idle_3_0": {
+   "frame": {
+    "x": 1726,
+    "y": 134,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_idle_3_1": {
+   "frame": {
+    "x": 1805,
+    "y": 134,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_idle_3_2": {
+   "frame": {
+    "x": 1884,
+    "y": 134,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_idle_3_3": {
+   "frame": {
+    "x": 1963,
+    "y": 134,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_idle_3_4": {
+   "frame": {
+    "x": 0,
+    "y": 215,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_idle_3_5": {
+   "frame": {
+    "x": 79,
+    "y": 215,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_walk_3_0": {
+   "frame": {
+    "x": 158,
+    "y": 215,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_walk_3_1": {
+   "frame": {
+    "x": 237,
+    "y": 215,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_walk_3_4": {
+   "frame": {
+    "x": 316,
+    "y": 215,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_walk_3_5": {
+   "frame": {
+    "x": 395,
+    "y": 215,
+    "w": 77,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 75
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 75
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6439
+   }
+  },
+  "truck_walk_3_2": {
+   "frame": {
+    "x": 474,
+    "y": 215,
+    "w": 77,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 74
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 74
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6403
+   }
+  },
+  "truck_walk_3_3": {
+   "frame": {
+    "x": 553,
+    "y": 215,
+    "w": 77,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 74
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 74
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6468
+   }
+  },
+  "truck_walk_3_6": {
+   "frame": {
+    "x": 632,
+    "y": 215,
+    "w": 77,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 74
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 74
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6403
+   }
+  },
+  "truck_walk_3_7": {
+   "frame": {
+    "x": 711,
+    "y": 215,
+    "w": 77,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 74
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 74
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.6468
+   }
+  },
+  "truck_fire_5_0": {
+   "frame": {
+    "x": 790,
+    "y": 215,
+    "w": 77,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 72
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 72
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5874
+   }
+  },
+  "truck_walk_5_1": {
+   "frame": {
+    "x": 869,
+    "y": 215,
+    "w": 77,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 72
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 72
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5874
+   }
+  },
+  "truck_walk_5_5": {
+   "frame": {
+    "x": 948,
+    "y": 215,
+    "w": 77,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 72
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 72
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5874
+   }
+  },
+  "truck_walk_6_1": {
+   "frame": {
+    "x": 1027,
+    "y": 215,
+    "w": 44,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 72
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 72
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.5874
+   }
+  },
+  "truck_fire_6_0": {
+   "frame": {
+    "x": 1073,
+    "y": 215,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_idle_5_0": {
+   "frame": {
+    "x": 1119,
+    "y": 215,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5936
+   }
+  },
+  "truck_idle_5_1": {
+   "frame": {
+    "x": 1198,
+    "y": 215,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5936
+   }
+  },
+  "truck_idle_5_2": {
+   "frame": {
+    "x": 1277,
+    "y": 215,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5936
+   }
+  },
+  "truck_idle_5_3": {
+   "frame": {
+    "x": 1356,
+    "y": 215,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5936
+   }
+  },
+  "truck_idle_5_4": {
+   "frame": {
+    "x": 1435,
+    "y": 215,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5936
+   }
+  },
+  "truck_idle_5_5": {
+   "frame": {
+    "x": 1514,
+    "y": 215,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5936
+   }
+  },
+  "truck_idle_6_0": {
+   "frame": {
+    "x": 1593,
+    "y": 215,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_idle_6_1": {
+   "frame": {
+    "x": 1639,
+    "y": 215,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_idle_6_2": {
+   "frame": {
+    "x": 1685,
+    "y": 215,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_idle_6_3": {
+   "frame": {
+    "x": 1731,
+    "y": 215,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_idle_6_4": {
+   "frame": {
+    "x": 1777,
+    "y": 215,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_idle_6_5": {
+   "frame": {
+    "x": 1823,
+    "y": 215,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_walk_5_0": {
+   "frame": {
+    "x": 1869,
+    "y": 215,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5936
+   }
+  },
+  "truck_walk_5_2": {
+   "frame": {
+    "x": 1948,
+    "y": 215,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5892
+   }
+  },
+  "truck_walk_5_3": {
+   "frame": {
+    "x": 0,
+    "y": 292,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5892
+   }
+  },
+  "truck_walk_5_4": {
+   "frame": {
+    "x": 79,
+    "y": 292,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5936
+   }
+  },
+  "truck_walk_5_6": {
+   "frame": {
+    "x": 158,
+    "y": 292,
+    "w": 77,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4397,
+    "y": 0.5936
+   }
+  },
+  "truck_walk_5_7": {
+   "frame": {
+    "x": 237,
+    "y": 292,
+    "w": 76,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4441,
+    "y": 0.5892
+   }
+  },
+  "truck_walk_6_0": {
+   "frame": {
+    "x": 315,
+    "y": 292,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_walk_6_2": {
+   "frame": {
+    "x": 361,
+    "y": 292,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_walk_6_3": {
+   "frame": {
+    "x": 407,
+    "y": 292,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.5786
+   }
+  },
+  "truck_walk_6_4": {
+   "frame": {
+    "x": 453,
+    "y": 292,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_walk_6_5": {
+   "frame": {
+    "x": 499,
+    "y": 292,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.583
+   }
+  },
+  "truck_walk_6_6": {
+   "frame": {
+    "x": 545,
+    "y": 292,
+    "w": 44,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.5892
+   }
+  },
+  "truck_walk_7_1": {
+   "frame": {
+    "x": 591,
+    "y": 292,
+    "w": 75,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5892
+   }
+  },
+  "truck_walk_7_5": {
+   "frame": {
+    "x": 668,
+    "y": 292,
+    "w": 75,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 71
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 71
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5892
+   }
+  },
+  "truck_fire_7_0": {
+   "frame": {
+    "x": 745,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_idle_7_0": {
+   "frame": {
+    "x": 822,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_idle_7_1": {
+   "frame": {
+    "x": 899,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_idle_7_2": {
+   "frame": {
+    "x": 976,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_idle_7_3": {
+   "frame": {
+    "x": 1053,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_idle_7_4": {
+   "frame": {
+    "x": 1130,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_idle_7_5": {
+   "frame": {
+    "x": 1207,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_walk_6_7": {
+   "frame": {
+    "x": 1284,
+    "y": 292,
+    "w": 44,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4212,
+    "y": 0.5848
+   }
+  },
+  "truck_walk_7_0": {
+   "frame": {
+    "x": 1330,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_walk_7_2": {
+   "frame": {
+    "x": 1407,
+    "y": 292,
+    "w": 76,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4738,
+    "y": 0.5848
+   }
+  },
+  "truck_walk_7_3": {
+   "frame": {
+    "x": 1485,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_walk_7_4": {
+   "frame": {
+    "x": 1562,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_walk_7_6": {
+   "frame": {
+    "x": 1639,
+    "y": 292,
+    "w": 75,
+    "h": 70
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 70
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5848
+   }
+  },
+  "truck_walk_7_7": {
+   "frame": {
+    "x": 1716,
+    "y": 292,
+    "w": 75,
+    "h": 69
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 69
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 69
+   },
+   "anchor": {
+    "x": 0.4685,
+    "y": 0.5912
+   }
+  },
+  "truck_walk_0_1": {
+   "frame": {
+    "x": 1793,
+    "y": 292,
+    "w": 76,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 68
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 68
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6821
+   }
+  },
+  "truck_walk_0_5": {
+   "frame": {
+    "x": 1871,
+    "y": 292,
+    "w": 76,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 68
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 68
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6821
+   }
+  },
+  "truck_fire_0_0": {
+   "frame": {
+    "x": 1949,
+    "y": 292,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_idle_0_0": {
+   "frame": {
+    "x": 0,
+    "y": 365,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_idle_0_1": {
+   "frame": {
+    "x": 78,
+    "y": 365,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_idle_0_2": {
+   "frame": {
+    "x": 156,
+    "y": 365,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_idle_0_3": {
+   "frame": {
+    "x": 234,
+    "y": 365,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_idle_0_4": {
+   "frame": {
+    "x": 312,
+    "y": 365,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_idle_0_5": {
+   "frame": {
+    "x": 390,
+    "y": 365,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_walk_0_0": {
+   "frame": {
+    "x": 468,
+    "y": 365,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_walk_0_2": {
+   "frame": {
+    "x": 546,
+    "y": 365,
+    "w": 75,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.4585,
+    "y": 0.6785
+   }
+  },
+  "truck_walk_0_4": {
+   "frame": {
+    "x": 623,
+    "y": 365,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_walk_0_6": {
+   "frame": {
+    "x": 701,
+    "y": 365,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_walk_0_7": {
+   "frame": {
+    "x": 779,
+    "y": 365,
+    "w": 76,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 76,
+    "h": 67
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 76,
+    "h": 67
+   },
+   "anchor": {
+    "x": 0.454,
+    "y": 0.6785
+   }
+  },
+  "truck_fire_4_0": {
+   "frame": {
+    "x": 857,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_idle_4_0": {
+   "frame": {
+    "x": 937,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_idle_4_1": {
+   "frame": {
+    "x": 1017,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_idle_4_2": {
+   "frame": {
+    "x": 1097,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_idle_4_3": {
+   "frame": {
+    "x": 1177,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_idle_4_4": {
+   "frame": {
+    "x": 1257,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_idle_4_5": {
+   "frame": {
+    "x": 1337,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_walk_0_3": {
+   "frame": {
+    "x": 1417,
+    "y": 365,
+    "w": 75,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 75,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 75,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4585,
+    "y": 0.6826
+   }
+  },
+  "truck_walk_4_0": {
+   "frame": {
+    "x": 1494,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_walk_4_1": {
+   "frame": {
+    "x": 1574,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_walk_4_2": {
+   "frame": {
+    "x": 1654,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_walk_4_4": {
+   "frame": {
+    "x": 1734,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_walk_4_5": {
+   "frame": {
+    "x": 1814,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_walk_4_6": {
+   "frame": {
+    "x": 1894,
+    "y": 365,
+    "w": 78,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6367
+   }
+  },
+  "truck_walk_4_7": {
+   "frame": {
+    "x": 0,
+    "y": 434,
+    "w": 77,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 77,
+    "h": 65
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 77,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0.4549,
+    "y": 0.6324
+   }
+  },
+  "truck_walk_4_3": {
+   "frame": {
+    "x": 79,
+    "y": 434,
+    "w": 78,
+    "h": 64
+   },
+   "sourceSize": {
+    "w": 78,
+    "h": 64
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 78,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0.4505,
+    "y": 0.6399
+   }
+  },
+  "truck_walk_1_5_team": {
+   "frame": {
+    "x": 159,
+    "y": 434,
+    "w": 63,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 28
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 28
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.9024
+   }
+  },
+  "truck_walk_1_7_team": {
+   "frame": {
+    "x": 224,
+    "y": 434,
+    "w": 63,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 28
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 28
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8754
+   }
+  },
+  "truck_walk_3_5_team": {
+   "frame": {
+    "x": 289,
+    "y": 434,
+    "w": 63,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 28
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 28
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 0.9024
+   }
+  },
+  "truck_walk_3_7_team": {
+   "frame": {
+    "x": 354,
+    "y": 434,
+    "w": 63,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 28
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 28
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 0.8754
+   }
+  },
+  "truck_fire_1_0_team": {
+   "frame": {
+    "x": 419,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_fire_1_1_team": {
+   "frame": {
+    "x": 484,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_fire_1_2_team": {
+   "frame": {
+    "x": 549,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_fire_1_3_team": {
+   "frame": {
+    "x": 614,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_fire_3_0_team": {
+   "frame": {
+    "x": 679,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_fire_3_1_team": {
+   "frame": {
+    "x": 744,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_fire_3_2_team": {
+   "frame": {
+    "x": 809,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_fire_3_3_team": {
+   "frame": {
+    "x": 874,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_1_0_team": {
+   "frame": {
+    "x": 939,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_1_1_team": {
+   "frame": {
+    "x": 1004,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_1_2_team": {
+   "frame": {
+    "x": 1069,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_1_3_team": {
+   "frame": {
+    "x": 1134,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_1_4_team": {
+   "frame": {
+    "x": 1199,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_1_5_team": {
+   "frame": {
+    "x": 1264,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_3_0_team": {
+   "frame": {
+    "x": 1329,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_3_1_team": {
+   "frame": {
+    "x": 1394,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_3_2_team": {
+   "frame": {
+    "x": 1459,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_3_3_team": {
+   "frame": {
+    "x": 1524,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_3_4_team": {
+   "frame": {
+    "x": 1589,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_idle_3_5_team": {
+   "frame": {
+    "x": 1654,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_walk_1_0_team": {
+   "frame": {
+    "x": 1719,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_walk_1_4_team": {
+   "frame": {
+    "x": 1784,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_walk_1_6_team": {
+   "frame": {
+    "x": 1849,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_walk_3_0_team": {
+   "frame": {
+    "x": 1914,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_walk_3_4_team": {
+   "frame": {
+    "x": 1979,
+    "y": 434,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8997
+   }
+  },
+  "truck_walk_3_6_team": {
+   "frame": {
+    "x": 0,
+    "y": 501,
+    "w": 63,
+    "h": 27
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 27
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 27
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 0.8997
+   }
+  },
+  "truck_walk_1_1_team": {
+   "frame": {
+    "x": 65,
+    "y": 501,
+    "w": 63,
+    "h": 26
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 26
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 26
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.9254
+   }
+  },
+  "truck_walk_1_2_team": {
+   "frame": {
+    "x": 130,
+    "y": 501,
+    "w": 63,
+    "h": 26
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 26
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 26
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.9254
+   }
+  },
+  "truck_walk_1_3_team": {
+   "frame": {
+    "x": 195,
+    "y": 501,
+    "w": 63,
+    "h": 26
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 26
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 26
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8968
+   }
+  },
+  "truck_walk_3_1_team": {
+   "frame": {
+    "x": 260,
+    "y": 501,
+    "w": 63,
+    "h": 26
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 26
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 26
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.9254
+   }
+  },
+  "truck_walk_3_2_team": {
+   "frame": {
+    "x": 325,
+    "y": 501,
+    "w": 63,
+    "h": 26
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 26
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 26
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.9254
+   }
+  },
+  "truck_walk_3_3_team": {
+   "frame": {
+    "x": 390,
+    "y": 501,
+    "w": 63,
+    "h": 26
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 26
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 26
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 0.8968
+   }
+  },
+  "truck_walk_5_2_team": {
+   "frame": {
+    "x": 455,
+    "y": 501,
+    "w": 63,
+    "h": 23
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 23
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 23
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.013
+   }
+  },
+  "truck_fire_5_0_team": {
+   "frame": {
+    "x": 520,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_fire_5_1_team": {
+   "frame": {
+    "x": 585,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_fire_5_2_team": {
+   "frame": {
+    "x": 650,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_fire_5_3_team": {
+   "frame": {
+    "x": 715,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_fire_7_0_team": {
+   "frame": {
+    "x": 780,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_fire_7_1_team": {
+   "frame": {
+    "x": 845,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_fire_7_2_team": {
+   "frame": {
+    "x": 910,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_fire_7_3_team": {
+   "frame": {
+    "x": 975,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_5_0_team": {
+   "frame": {
+    "x": 1040,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_5_1_team": {
+   "frame": {
+    "x": 1105,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_5_2_team": {
+   "frame": {
+    "x": 1170,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_5_3_team": {
+   "frame": {
+    "x": 1235,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_5_4_team": {
+   "frame": {
+    "x": 1300,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_5_5_team": {
+   "frame": {
+    "x": 1365,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_7_0_team": {
+   "frame": {
+    "x": 1430,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_7_1_team": {
+   "frame": {
+    "x": 1495,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_7_2_team": {
+   "frame": {
+    "x": 1560,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_7_3_team": {
+   "frame": {
+    "x": 1625,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_7_4_team": {
+   "frame": {
+    "x": 1690,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_idle_7_5_team": {
+   "frame": {
+    "x": 1755,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_walk_5_0_team": {
+   "frame": {
+    "x": 1820,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_walk_5_1_team": {
+   "frame": {
+    "x": 1885,
+    "y": 501,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0479
+   }
+  },
+  "truck_walk_5_3_team": {
+   "frame": {
+    "x": 1950,
+    "y": 501,
+    "w": 64,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.5042,
+    "y": 1.0134
+   }
+  },
+  "truck_walk_5_4_team": {
+   "frame": {
+    "x": 0,
+    "y": 530,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_walk_5_5_team": {
+   "frame": {
+    "x": 65,
+    "y": 530,
+    "w": 64,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.5042,
+    "y": 1.0479
+   }
+  },
+  "truck_walk_5_7_team": {
+   "frame": {
+    "x": 131,
+    "y": 530,
+    "w": 64,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.5042,
+    "y": 1.0134
+   }
+  },
+  "truck_walk_7_0_team": {
+   "frame": {
+    "x": 197,
+    "y": 530,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_walk_7_1_team": {
+   "frame": {
+    "x": 262,
+    "y": 530,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0479
+   }
+  },
+  "truck_walk_7_2_team": {
+   "frame": {
+    "x": 327,
+    "y": 530,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_walk_7_3_team": {
+   "frame": {
+    "x": 392,
+    "y": 530,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_walk_7_4_team": {
+   "frame": {
+    "x": 457,
+    "y": 530,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_walk_7_7_team": {
+   "frame": {
+    "x": 522,
+    "y": 530,
+    "w": 63,
+    "h": 22
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 22
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 22
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0134
+   }
+  },
+  "truck_walk_5_6_team": {
+   "frame": {
+    "x": 587,
+    "y": 530,
+    "w": 63,
+    "h": 21
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 21
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 21
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.0496
+   }
+  },
+  "truck_walk_7_5_team": {
+   "frame": {
+    "x": 652,
+    "y": 530,
+    "w": 63,
+    "h": 21
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 21
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 21
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0496
+   }
+  },
+  "truck_walk_7_6_team": {
+   "frame": {
+    "x": 717,
+    "y": 530,
+    "w": 63,
+    "h": 21
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 21
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 21
+   },
+   "anchor": {
+    "x": 0.4983,
+    "y": 1.0496
+   }
+  },
+  "truck_walk_2_6_team": {
+   "frame": {
+    "x": 782,
+    "y": 530,
+    "w": 28,
+    "h": 17
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 17
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 17
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.7904
+   }
+  },
+  "truck_fire_2_0_team": {
+   "frame": {
+    "x": 812,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_fire_2_1_team": {
+   "frame": {
+    "x": 842,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_fire_2_2_team": {
+   "frame": {
+    "x": 872,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_fire_2_3_team": {
+   "frame": {
+    "x": 902,
+    "y": 530,
+    "w": 27,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5237,
+    "y": 0.8281
+   }
+  },
+  "truck_fire_4_0_team": {
+   "frame": {
+    "x": 931,
+    "y": 530,
+    "w": 63,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.3995
+   }
+  },
+  "truck_fire_4_1_team": {
+   "frame": {
+    "x": 996,
+    "y": 530,
+    "w": 62,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 62,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 62,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5163,
+    "y": 1.3995
+   }
+  },
+  "truck_fire_4_2_team": {
+   "frame": {
+    "x": 1060,
+    "y": 530,
+    "w": 62,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 62,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 62,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5163,
+    "y": 1.3995
+   }
+  },
+  "truck_fire_4_3_team": {
+   "frame": {
+    "x": 1124,
+    "y": 530,
+    "w": 62,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 62,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 62,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5163,
+    "y": 1.3995
+   }
+  },
+  "truck_idle_2_0_team": {
+   "frame": {
+    "x": 1188,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_idle_2_1_team": {
+   "frame": {
+    "x": 1218,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_idle_2_2_team": {
+   "frame": {
+    "x": 1248,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_idle_2_3_team": {
+   "frame": {
+    "x": 1278,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_idle_2_4_team": {
+   "frame": {
+    "x": 1308,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_idle_2_5_team": {
+   "frame": {
+    "x": 1338,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_idle_4_0_team": {
+   "frame": {
+    "x": 1368,
+    "y": 530,
+    "w": 63,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.3995
+   }
+  },
+  "truck_idle_4_1_team": {
+   "frame": {
+    "x": 1433,
+    "y": 530,
+    "w": 63,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.3995
+   }
+  },
+  "truck_idle_4_2_team": {
+   "frame": {
+    "x": 1498,
+    "y": 530,
+    "w": 63,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.3995
+   }
+  },
+  "truck_idle_4_3_team": {
+   "frame": {
+    "x": 1563,
+    "y": 530,
+    "w": 63,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.3995
+   }
+  },
+  "truck_idle_4_4_team": {
+   "frame": {
+    "x": 1628,
+    "y": 530,
+    "w": 63,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.3995
+   }
+  },
+  "truck_idle_4_5_team": {
+   "frame": {
+    "x": 1693,
+    "y": 530,
+    "w": 63,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.3995
+   }
+  },
+  "truck_walk_0_6_team": {
+   "frame": {
+    "x": 1758,
+    "y": 530,
+    "w": 63,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.3995
+   }
+  },
+  "truck_walk_2_0_team": {
+   "frame": {
+    "x": 1823,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_walk_2_2_team": {
+   "frame": {
+    "x": 1853,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_walk_2_3_team": {
+   "frame": {
+    "x": 1883,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_walk_2_4_team": {
+   "frame": {
+    "x": 1913,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_walk_2_5_team": {
+   "frame": {
+    "x": 1943,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8281
+   }
+  },
+  "truck_walk_2_7_team": {
+   "frame": {
+    "x": 1973,
+    "y": 530,
+    "w": 28,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.7805
+   }
+  },
+  "truck_walk_4_0_team": {
+   "frame": {
+    "x": 0,
+    "y": 554,
+    "w": 63,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.3995
+   }
+  },
+  "truck_walk_4_4_team": {
+   "frame": {
+    "x": 65,
+    "y": 554,
+    "w": 63,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 16
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 16
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.3995
+   }
+  },
+  "truck_fire_0_0_team": {
+   "frame": {
+    "x": 130,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_fire_0_1_team": {
+   "frame": {
+    "x": 195,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_fire_0_2_team": {
+   "frame": {
+    "x": 260,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_fire_0_3_team": {
+   "frame": {
+    "x": 325,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_idle_0_0_team": {
+   "frame": {
+    "x": 390,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_idle_0_1_team": {
+   "frame": {
+    "x": 455,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_idle_0_2_team": {
+   "frame": {
+    "x": 520,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_idle_0_3_team": {
+   "frame": {
+    "x": 585,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_idle_0_4_team": {
+   "frame": {
+    "x": 650,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_idle_0_5_team": {
+   "frame": {
+    "x": 715,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_walk_0_0_team": {
+   "frame": {
+    "x": 780,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_walk_0_1_team": {
+   "frame": {
+    "x": 845,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4695
+   }
+  },
+  "truck_walk_0_2_team": {
+   "frame": {
+    "x": 910,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4695
+   }
+  },
+  "truck_walk_0_3_team": {
+   "frame": {
+    "x": 975,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_walk_0_4_team": {
+   "frame": {
+    "x": 1040,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_walk_0_5_team": {
+   "frame": {
+    "x": 1105,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4695
+   }
+  },
+  "truck_walk_0_7_team": {
+   "frame": {
+    "x": 1170,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.4864,
+    "y": 1.4195
+   }
+  },
+  "truck_walk_2_1_team": {
+   "frame": {
+    "x": 1235,
+    "y": 554,
+    "w": 28,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 0.8695
+   }
+  },
+  "truck_walk_4_1_team": {
+   "frame": {
+    "x": 1265,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.4695
+   }
+  },
+  "truck_walk_4_2_team": {
+   "frame": {
+    "x": 1330,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.4695
+   }
+  },
+  "truck_walk_4_3_team": {
+   "frame": {
+    "x": 1395,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.4195
+   }
+  },
+  "truck_walk_4_5_team": {
+   "frame": {
+    "x": 1460,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.4695
+   }
+  },
+  "truck_walk_4_6_team": {
+   "frame": {
+    "x": 1525,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.4195
+   }
+  },
+  "truck_walk_4_7_team": {
+   "frame": {
+    "x": 1590,
+    "y": 554,
+    "w": 63,
+    "h": 15
+   },
+   "sourceSize": {
+    "w": 63,
+    "h": 15
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 63,
+    "h": 15
+   },
+   "anchor": {
+    "x": 0.5102,
+    "y": 1.4195
+   }
+  },
+  "truck_fire_6_0_team": {
+   "frame": {
+    "x": 1655,
+    "y": 554,
+    "w": 28,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 1.0974
+   }
+  },
+  "truck_fire_6_1_team": {
+   "frame": {
+    "x": 1685,
+    "y": 554,
+    "w": 28,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 1.0974
+   }
+  },
+  "truck_fire_6_2_team": {
+   "frame": {
+    "x": 1715,
+    "y": 554,
+    "w": 28,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 1.0974
+   }
+  },
+  "truck_fire_6_3_team": {
+   "frame": {
+    "x": 1745,
+    "y": 554,
+    "w": 28,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.5096,
+    "y": 1.0974
+   }
+  },
+  "truck_idle_6_0_team": {
+   "frame": {
+    "x": 1775,
+    "y": 554,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_idle_6_1_team": {
+   "frame": {
+    "x": 1804,
+    "y": 554,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_idle_6_2_team": {
+   "frame": {
+    "x": 1833,
+    "y": 554,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_idle_6_3_team": {
+   "frame": {
+    "x": 1862,
+    "y": 554,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_idle_6_4_team": {
+   "frame": {
+    "x": 1891,
+    "y": 554,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_idle_6_5_team": {
+   "frame": {
+    "x": 1920,
+    "y": 554,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_walk_6_0_team": {
+   "frame": {
+    "x": 1949,
+    "y": 554,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_walk_6_1_team": {
+   "frame": {
+    "x": 1978,
+    "y": 554,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_walk_6_2_team": {
+   "frame": {
+    "x": 2007,
+    "y": 554,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_walk_6_4_team": {
+   "frame": {
+    "x": 0,
+    "y": 572,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_walk_6_5_team": {
+   "frame": {
+    "x": 29,
+    "y": 572,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.3474
+   }
+  },
+  "truck_walk_6_6_team": {
+   "frame": {
+    "x": 58,
+    "y": 572,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.3474
+   }
+  },
+  "truck_walk_6_7_team": {
+   "frame": {
+    "x": 87,
+    "y": 572,
+    "w": 27,
+    "h": 3
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 3
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 3
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.0974
+   }
+  },
+  "truck_walk_6_3_team": {
+   "frame": {
+    "x": 116,
+    "y": 572,
+    "w": 27,
+    "h": 2
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 2
+   },
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 2
+   },
+   "anchor": {
+    "x": 0.4959,
+    "y": 1.1298
+   }
+  }
+ },
+ "meta": {
+  "image": "truck.png",
+  "size": {
+   "w": 2048,
+   "h": 1024
+  },
+  "scale": "1.5"
+ }
+}

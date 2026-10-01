@@ -12,6 +12,8 @@ export function hashState(st: State): number {
   mix(st.rng.s);
   for (const p of st.players) {
     mix(p.metal);
+    mix(p.team);
+    mix(p.defeated ? 1 : 0);
     mix(p.instant ? 1 : 0);
     mix(p.popCap);
     mix(p.noPower ? 1 : 0);

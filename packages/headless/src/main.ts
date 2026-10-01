@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { aiCommands, createGame, hashState, step, SUB, type Command } from '@epocas/sim';
+import { aiCommands, createGame, hashState, MODES, step, SUB, type Command } from '@epocas/sim';
 
 export interface Replay {
   version: 1;
@@ -18,6 +18,7 @@ const { values } = parseArgs({
     'per-side': { type: 'string', default: '50' },
     replay: { type: 'string' },
     ai: { type: 'boolean', default: false },
+    mode: { type: 'string', default: '1v1' },
   },
 });
 
@@ -37,17 +38,20 @@ if (values.replay) {
 
 if (values.ai) {
   // IA contra IA desde la base inicial, hasta que alguien gane o se acabe el tiempo.
-  const st = createGame({ seed: Number(values.seed) });
+  const teams = MODES[values.mode!];
+  if (!teams) throw new Error(`modo desconocido: ${values.mode} (${Object.keys(MODES).join(', ')})`);
+  const st = createGame({ seed: Number(values.seed), teams });
   const limit = Number(values.ticks);
   let total = 0;
   const t0 = performance.now();
   while (st.tick < limit && st.winner < 0) {
-    const cmds = [...aiCommands(st, 0), ...aiCommands(st, 1)];
+    const cmds = st.players.flatMap((_, p) => aiCommands(st, p));
     const t = performance.now();
     step(st, cmds);
     total += performance.now() - t;
     if (st.tick % 2400 === 0) {
-      const line = [0, 1].map((p) => {
+      const line = st.players.map((pl, p) => {
+        if (pl.defeated) return `J${p}(e${pl.team}): eliminado`;
         const us = st.units.filter((u) => u.owner === p);
         const n = (t: string) => us.filter((u) => u.type === t).length;
         const bs = st.buildings.filter((b) => b.owner === p).map((b) => ({ hq: 'C', depot: 'd', barracks: 'b', hangar: 'h', cradle: 'K', tower: 't', plant: 'P', relay: 'r' })[b.type]).join('');
@@ -56,7 +60,7 @@ if (values.ai) {
       console.log(`${(st.tick / 1200).toFixed(0).padStart(2)} min  ${line.join('   ')}`);
     }
   }
-  const who = st.winner < 0 ? 'nadie (tiempo agotado)' : `jugador ${st.winner}`;
+  const who = st.winner < 0 ? 'nadie (tiempo agotado)' : `el equipo ${st.winner} (${st.players.map((pl, p) => (pl.team === st.winner ? `J${p}` : '')).filter(Boolean).join(', ')})`;
   console.log(`gana ${who} en ${(st.tick / 1200).toFixed(1)} min · hash ${hex(hashState(st))} · ${(total / st.tick).toFixed(3)} ms/tick · ${((performance.now() - t0) / 1000).toFixed(1)} s reales`);
   process.exit(0);
 }

@@ -40,8 +40,15 @@ export function updateVision(st: State): void {
     const r = u.type === 'truck' && u.deployState === 2 && u.nodePowered ? Math.max(Math.ceil(u.sight / SUB), coverOf(st, u.owner, BUILDINGS.relay.power!.cover, true)) : Math.ceil(u.sight / SUB);
     mark(1 << u.owner, u.x, u.y, r);
   }
+  const teamOf = (p: number) => st.players.reduce((m, o, q) => (o.team === st.players[p].team ? m | (1 << q) : m), 0);
   for (const b of st.buildings) {
     if (b.hp <= 0) continue;
+    if (!b.complete) {
+      // Una obra no da visión: solo deja explorado (primera capa de niebla) el terreno de su huella.
+      const m = teamOf(b.owner);
+      for (let y = b.ty; y < b.ty + b.size; y++) for (let x = b.tx; x < b.tx + b.size; x++) st.explored[y * w + x] |= m;
+      continue;
+    }
     const c = buildingCenter(b);
     // La red solo ve si tiene energía; el resto de edificios, siempre.
     const r = BUILDINGS[b.type].power && !b.powered ? Math.ceil(b.size / 2) + 2 : b.type === 'relay' ? coverOf(st, b.owner, buildingSight(b.type), true) : buildingSight(b.type);
@@ -51,6 +58,15 @@ export function updateVision(st: State): void {
     const bit = 1 << p;
     if (st.players[p].noFog) for (let i = 0; i < next.length; i++) next[i] |= bit;
     if (st.players[p].revealMap) for (let i = 0; i < next.length; i++) st.explored[i] |= bit;
+  }
+  // Los aliados comparten visión: cada jugador ve lo que ve cualquiera de su equipo.
+  const teamMask = st.players.map((pl) => st.players.reduce((m, o, q) => (o.team === pl.team ? m | (1 << q) : m), 0));
+  for (let i = 0; i < next.length; i++) {
+    const v = next[i];
+    if (v === 0) continue;
+    let out = 0;
+    for (let p = 0; p < teamMask.length; p++) if (v & teamMask[p]) out |= 1 << p;
+    next[i] = out;
   }
   for (let i = 0; i < next.length; i++) st.explored[i] |= next[i];
   st.vision = next;

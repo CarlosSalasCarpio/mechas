@@ -13,6 +13,7 @@
       #top button { padding: 3px 8px; }
       #idle.has { background: #ffb347; color: #0e0b16; }
       .genTag { color: #7dffb0; letter-spacing: 1px; font-size: 13px; }
+      .modeTag { color: #a8927a; font-size: 12px; }
       .qbox.research { min-width: 150px; }
       .qbox.research b { font-size: 14px; }
       #idle.has kbd { background: #0e0b16; color: #ffb347; }
@@ -21,11 +22,26 @@
       button { font: inherit; background: #1d1726; color: #ffb347; border: 1px solid #6b4a2a; border-radius: 3px; padding: 4px 10px; cursor: pointer; }
       button:hover:not(:disabled) { background: #2a2136; }
       button:disabled { opacity: .4; cursor: default; }
-      #panel { position: fixed; bottom: 8px; left: 330px; right: 396px; padding: 10px 14px; display: none; flex-direction: column; gap: 8px; }
+      #panel { position: fixed; bottom: 8px; left: 16px; right: 396px; padding: 10px 14px; display: none; flex-direction: column; gap: 8px; }
       #info { color: #f3e9d8; white-space: pre-line; }
-      #actions { display: flex; flex-wrap: wrap; gap: 8px; }
-      #actions button { display: flex; flex-direction: column; align-items: flex-start; min-width: 104px; }
-      #actions small { color: #a8927a; }
+      #actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+      .sec { display: flex; flex-direction: column; gap: 5px; }
+      .sec h4 { margin: 0; font-size: 10px; font-weight: normal; letter-spacing: 3px; text-transform: uppercase; }
+      .sec .row { display: flex; flex-wrap: wrap; gap: 6px; }
+      .act { display: flex; align-items: center; gap: 8px; min-width: 170px; max-width: 260px; text-align: left; padding: 5px 9px; }
+      .act svg { flex-shrink: 0; }
+      .act .txt { display: flex; flex-direction: column; gap: 1px; }
+      .act .lbl { display: flex; align-items: center; gap: 5px; }
+      .act small { color: #a8927a; font-size: 10.5px; line-height: 1.3; }
+      .sec.unit h4 { color: #ffb347; } .act.unit { border-color: #8a6a3a; color: #ffcf8a; }
+      .sec.gen h4 { color: #7dffb0; } .act.gen { border-color: #3f8a5e; color: #9dffc4; background: #10231a; }
+      .act.gen kbd { background: #7dffb0; }
+      .sec.tech h4 { color: #3ee6ff; } .act.tech { border-color: #2a6f80; color: #9ff2ff; background: #0f1d24; }
+      .act.tech kbd { background: #3ee6ff; }
+      .sec.build h4 { color: #e8a33a; } .act.build { border-color: #7a5a2a; }
+      .sec.order h4 { color: #c9c2b4; } .act.order { border-color: #5a5460; color: #e7e5e4; }
+      .act.order kbd { background: #c9c2b4; }
+      .act:disabled small { color: #8a7f74; }
       #queue { display: flex; gap: 6px; }
       #queue:empty { display: none; }
       .qbox { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 64px; padding: 4px 8px 8px; overflow: hidden; }
@@ -43,10 +59,21 @@
       #pauseScreen { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; background: rgba(8, 5, 13, .7); z-index: 10; }
       #pauseScreen span { font-size: 56px; letter-spacing: 10px; color: #ffb347; }
       #pauseScreen button { font-size: 16px; padding: 8px 24px; }
+      #menu { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(20, 12, 34, .82), rgba(7, 5, 11, .95)); z-index: 20; }
+      .menuBox { width: 480px; max-width: calc(100vw - 32px); padding: 28px 32px; background: #0e0b16; border: 1px solid #6b4a2a; border-radius: 6px; display: flex; flex-direction: column; gap: 10px; }
+      .menuBox h1 { margin: 0; font-size: 44px; letter-spacing: 10px; color: #f3e9d8; }
+      .menuBox .tag { margin: 0 0 8px; color: #ffb347; letter-spacing: 1px; }
+      .menuBox h3 { margin: 6px 0 0; font-weight: normal; letter-spacing: 3px; color: #7dffb0; text-transform: uppercase; font-size: 13px; }
+      .menuBox label { color: #a8927a; font-size: 12px; }
+      #modes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+      #modes button { padding: 8px 4px; }
+      #modes button.on { background: #ffb347; color: #0e0b16; }
+      #seedInput { font: inherit; padding: 7px 9px; background: #1d1726; color: #f3e9d8; border: 1px solid #6b4a2a; border-radius: 3px; }
+      .menuButtons { display: flex; gap: 8px; margin-top: 8px; }
+      .menuButtons .primary { flex-grow: 1; padding: 10px; font-size: 15px; background: #ffb347; color: #0e0b16; }
       #pauseScreen small { color: #a8927a; font-size: 13px; letter-spacing: 1px; }
       #minimapBox { position: fixed; right: 16px; bottom: 16px; padding: 6px; }
       #minimap { display: block; width: 360px; height: 180px; cursor: crosshair; image-rendering: pixelated; }
-      #help { position: fixed; bottom: 8px; left: 8px; padding: 6px 10px; color: #a8927a; max-width: 300px; pointer-events: none; }
     </style>
   </head>
   <body>
@@ -54,6 +81,7 @@
       <span>METAL <b id="metal">0</b></span>
       <span>POBLACIÓN <b id="pop">0</b></span>
       <span id="gen" class="genTag">GEN-1</span>
+      <span id="modeTag" class="modeTag"></span>
       <button id="idle" title="Ir al siguiente obrero ocioso (tecla I)"><kbd>I</kbd> OCIOSOS <b id="idleCount">0</b></button>
       <span class="speed">VELOCIDAD <button data-speed="1" class="on">1x</button> <button data-speed="1.5">1.5x</button> <button data-speed="2">2x</button> <button data-speed="3">3x</button></span>
       <button id="mute" title="Activar o silenciar el sonido">Sonido: sí</button>
@@ -67,11 +95,22 @@
     <div id="alert" class="box"></div>
     <div id="toast" class="box"></div>
     <input id="chat" placeholder="Código de truco… (Enter para enviar, Esc para cerrar)" autocomplete="off" />
-    <div id="pauseScreen"><span>PAUSA</span><button id="resume">Continuar</button><small>Esc o P para continuar</small></div>
+    <div id="pauseScreen"><span>PAUSA</span><button id="resume">Continuar</button><button id="toMenu">Menú principal</button><small>Esc o P para continuar</small></div>
+    <div id="menu">
+      <div class="menuBox">
+        <h1>MECHAS</h1>
+        <p class="tag">Estrategia en tiempo real · retrofuturismo de los 80</p>
+        <h3>Nueva partida</h3>
+        <label>Modo (tú eres el primer equipo; el resto, IA)</label>
+        <div id="modes"></div>
+        <label for="seedInput">Semilla del mapa (vacía = aleatoria)</label>
+        <input id="seedInput" inputmode="numeric" placeholder="aleatoria" />
+        <div class="menuButtons"><button id="newGame" class="primary">Empezar partida</button><button id="menuLoad">Cargar replay</button></div>
+      </div>
+    </div>
     <div id="end"><span id="endText"></span><small>Partida terminada · recarga la página para jugar otra</small></div>
     <div id="minimapBox" class="box"><canvas id="minimap"></canvas></div>
     <div id="panel" class="box"><div id="info"></div><div id="queue"></div><div id="actions"></div></div>
-    <div id="help" class="box">Arrastrar: seleccionar<br />Clic der.: mover · atacar · recolectar · construir<br />Clic der. con edificio: punto de reunión<br />Clic der. con obreros en edificio dañado: reparar<br />Clic en el cuadro de cola: cancelar una<br />Doble clic: todas las del mismo tipo en pantalla<br />Q W E / A S D: acciones del panel<br />Q con militares: avanzar atacando (luego clic)<br />Flechas, borde de pantalla o botón central: cámara · Rueda: zoom<br />Alt: ver la red de energía · Espacio: ir al cuartel general · I: siguiente obrero ocioso · Esc: cancelar o pausa · F: pantalla completa · Enter: trucos</div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

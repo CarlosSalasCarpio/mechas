@@ -3,3 +3,8 @@ dist/
 *.log
 .DS_Store
 replays/
+tsconfig.tsbuildinfo
+# Arte: modelos fuente (descargables con art/fetch.py) y renders intermedios
+art/models/
+art/sprites/
+art/units/

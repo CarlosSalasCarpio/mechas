@@ -5,8 +5,8 @@ import { isqrt } from './math';
 import type { MetalNode } from './resource';
 import { UNITS, type Unit, type UnitType } from './unit';
 import { canPlaceBuilding, isPowered, nearestPoweredTile } from './power';
-import { TECHS, type TechId } from './tech';
-import type { State } from './state';
+import { linkOf, TECHS, type TechId } from './tech';
+import { hostile, type State } from './state';
 
 /**
  * IA rival. Es una función pura del estado: decide cada segundo qué comandos enviar, igual que un
@@ -42,7 +42,7 @@ const WAVE_GROWTH_TICKS = 2400;
 type Plan = Command extends infer C ? (C extends Command ? Omit<C, 'tick' | 'player'> : never) : never;
 
 export function aiCommands(st: State, p: number): Command[] {
-  if (st.tick % AI_EVERY !== 0 || st.winner >= 0) return [];
+  if (st.tick % AI_EVERY !== 0 || st.winner >= 0 || st.players[p].defeated) return [];
   const hq = st.buildings.find((b) => b.owner === p && b.type === 'hq');
   if (!hq) return [];
 
@@ -136,7 +136,10 @@ export function aiCommands(st: State, p: number): Command[] {
   }
 
   // ---- red de energía: tomar vetas libres y tender antenas hacia el enemigo
-  const enemyHq = st.buildings.find((b) => b.owner !== p && b.type === 'hq');
+  // Rival principal: el cuartel general enemigo más cercano.
+  const enemyHq = st.buildings
+    .filter((b) => hostile(st, b.owner, p) && b.type === 'hq')
+    .sort((a, z) => dist(buildingCenter(a).x, buildingCenter(a).y, home.x, home.y) - dist(buildingCenter(z).x, buildingCenter(z).y, home.x, home.y) || a.id - z.id)[0];
   // Solo cuenta la red a la que se puede llegar desde la base sin pisar zona sin energía: nodos cuya
   // cobertura se toca, empezando por los de casa. Así la IA nunca manda mechas a cruzar un hueco.
   const powered = mineB.filter((b) => BUILDINGS[b.type].power && b.powered);
@@ -177,7 +180,7 @@ export function aiCommands(st: State, p: number): Command[] {
     const e = buildingCenter(enemyHq);
     const d = dist(frontier.c.x, frontier.c.y, e.x, e.y);
     // Parar cuando el borde de la red ya pone a tiro los edificios enemigos (cobertura + alcance de un mecha).
-    const enemyNear = st.buildings.some((b) => b.owner !== p && dist(buildingCenter(b).x, buildingCenter(b).y, frontier.c.x, frontier.c.y) <= STOP_CHAIN);
+    const enemyNear = st.buildings.some((b) => hostile(st, b.owner, p) && dist(buildingCenter(b).x, buildingCenter(b).y, frontier.c.x, frontier.c.y) <= STOP_CHAIN);
     if ((!enemyNear || strong) && d > 6 * SUB) {
       // Siguiente eslabón: 7 casillas hacia el cuartel general enemigo, en el primer hueco válido.
       const step = 7 * SUB;
@@ -229,7 +232,7 @@ export function aiCommands(st: State, p: number): Command[] {
   // ---- producción.
   // Con la cuna lista y algo de ejército para defenderse, ahorrar sin pausa hasta poder pagar un coloso
   // (salvo que estén atacando la base).
-  const underAttack = st.units.some((u) => u.owner !== p && u.type !== 'worker' && dist(u.x, u.y, home.x, home.y) <= DEFEND_RADIUS);
+  const underAttack = st.units.some((u) => hostile(st, u.owner, p) && u.type !== 'worker' && dist(u.x, u.y, home.x, home.y) <= DEFEND_RADIUS);
   const saving = ready('cradle').some((b) => b.queue.length === 0) && armyPop >= 20 && !underAttack;
   const train = (b: Building, unit: UnitType, maxQueue: number, keep: number, holdIfShort = true) => {
     if (b.queue.length >= maxQueue) return;
@@ -244,7 +247,7 @@ export function aiCommands(st: State, p: number): Command[] {
   // Alternar colosos de combate y de asedio.
   const bigs = army.filter((u) => u.type === 'colossus').length;
   const sieges = army.filter((u) => u.type === 'siege').length;
-  const enemyTowers = st.buildings.some((b) => b.owner !== p && b.type === 'tower');
+  const enemyTowers = st.buildings.some((b) => hostile(st, b.owner, p) && b.type === 'tower');
   for (const b of ready('cradle')) train(b, enemyTowers || sieges < bigs ? 'siege' : 'colossus', 1, 0, saving);
   if (!saving) {
     // Un mecha de artillería por cada dos mechas de línea.
@@ -266,7 +269,7 @@ export function aiCommands(st: State, p: number): Command[] {
   }
 
   // ---- ejército
-  const enemyUnits = st.units.filter((u) => u.owner !== p);
+  const enemyUnits = st.units.filter((u) => hostile(st, u.owner, p));
   // Amenaza: enemigos cerca del cuartel general o de cualquier depósito (las expansiones también se defienden).
   const guarded = [home, ...mineB.filter((b) => b.type === 'depot').map((b) => buildingCenter(b))];
   const threat = enemyUnits.find((u) => u.type !== 'worker' && guarded.some((g) => dist(u.x, u.y, g.x, g.y) <= (g === home ? DEFEND_RADIUS : EXPANSION_RADIUS)));
@@ -280,18 +283,41 @@ export function aiCommands(st: State, p: number): Command[] {
     if (inside.length) send({ kind: 'amove', units: inside.map((u) => u.id), x, y });
     if (outside.length) send({ kind: 'amove', units: outside.map((u) => u.id), x: edge.x, y: edge.y });
   };
-  // Camiones: se despliegan un poco más allá del borde de la red, hacia el enemigo, para extenderla.
+  // Camiones: se encadenan uno detrás de otro desde el borde de la red hacia el enemigo, cada uno a
+  // distancia de enlace del anterior (así cada camión extiende la red en vez de apilarse).
   if (frontier && enemyHq) {
-    const cover = BUILDINGS[frontier.b.type].power!.cover;
-    const spot = edgeToward(frontier.c, buildingCenter(enemyHq), cover + 4);
-    for (const t of trucks) {
-      if (t.deployState === 1) continue;
+    const step = (linkOf(st, p, BUILDINGS.relay.power!.link, true) - 1) * SUB;
+    const e = buildingCenter(enemyHq);
+    const linkR = linkOf(st, p, BUILDINGS.relay.power!.link, true) * SUB;
+    const linked = (t: Unit) =>
+      mineB.some((b) => b.powered && b.complete && BUILDINGS[b.type].power && dist(buildingCenter(b).x, buildingCenter(b).y, t.x, t.y) <= linkR) ||
+      trucks.some((o) => o !== t && o.deployState === 2 && o.nodePowered && dist(o.x, o.y, t.x, t.y) <= linkR);
+    let from = frontier.c;
+    // Se despliegan por orden: el siguiente solo avanza cuando el anterior ya da energía.
+    let ready = true;
+    for (const t of trucks.slice().sort((a, z) => a.id - z.id)) {
+      const d0 = dist(from.x, from.y, e.x, e.y) || 1;
+      const spot = { x: from.x + Math.trunc(((e.x - from.x) * Math.min(step, d0)) / d0), y: from.y + Math.trunc(((e.y - from.y) * Math.min(step, d0)) / d0) };
       const d = dist(t.x, t.y, spot.x, spot.y);
       if (t.deployState === 2) {
-        // Desplegado: si el frente avanzó mucho, replegar y volver a acompañarlo.
-        if (d > 12 * SUB && !t.nodePowered) send({ kind: 'deploy', units: [t.id], on: false });
+        // nodePowered se calcula al inicio del tick siguiente: justo al terminar de desplegar aún es falso,
+        // así que se comprueba el enlace a mano.
+        if (!t.nodePowered && !linked(t)) {
+          // Desplegado sin enlace: no sirve. Replegar y volver a colocarlo.
+          send({ kind: 'deploy', units: [t.id], on: false });
+          ready = false;
+        } else if (d > 14 * SUB) {
+          // El frente se alejó mucho: replegar para acompañarlo.
+          send({ kind: 'deploy', units: [t.id], on: false });
+          ready = false;
+        } else from = { x: t.x, y: t.y };
         continue;
       }
+      if (t.deployState === 1 || !ready) {
+        ready = false;
+        continue;
+      }
+      ready = false;
       if (t.order.kind !== 'idle') continue;
       if (d > 2 * SUB) send({ kind: 'move', units: [t.id], x: spot.x, y: spot.y });
       else send({ kind: 'deploy', units: [t.id], on: true });
@@ -304,7 +330,7 @@ export function aiCommands(st: State, p: number): Command[] {
     return out;
   }
 
-  const enemyBuildings = st.buildings.filter((b) => b.owner !== p);
+  const enemyBuildings = st.buildings.filter((b) => hostile(st, b.owner, p));
   if (enemyBuildings.length === 0) return out;
   const nearestTarget = (x: number, y: number) =>
     enemyBuildings
@@ -377,8 +403,8 @@ function pickZones(st: State, p: number, home: { x: number; y: number }): Zone[]
     zones.push({ x, y, amount: group.reduce((s, g) => s + g.amount, 0), nodes: group });
   }
   const danger = (z: Zone) =>
-    st.buildings.some((b) => b.owner !== p && (BUILDINGS[b.type].attack || b.type === 'hq') && isqrt((buildingCenter(b).x - z.x) ** 2 + (buildingCenter(b).y - z.y) ** 2) <= 12 * SUB) ||
-    st.units.filter((u) => u.owner !== p && u.type !== 'worker' && isqrt((u.x - z.x) ** 2 + (u.y - z.y) ** 2) <= 10 * SUB).length >= 3;
+    st.buildings.some((b) => hostile(st, b.owner, p) && (BUILDINGS[b.type].attack || b.type === 'hq') && isqrt((buildingCenter(b).x - z.x) ** 2 + (buildingCenter(b).y - z.y) ** 2) <= 12 * SUB) ||
+    st.units.filter((u) => hostile(st, u.owner, p) && u.type !== 'worker' && isqrt((u.x - z.x) ** 2 + (u.y - z.y) ** 2) <= 10 * SUB).length >= 3;
   const score = (z: Zone) => Math.trunc((Math.min(z.amount, 4000) * 100) / (Math.trunc(isqrt((z.x - home.x) ** 2 + (z.y - home.y) ** 2) / SUB) + 10));
   return zones
     .filter((z) => z.amount >= 200 && !danger(z))
@@ -406,12 +432,12 @@ function nearSpot(st: State, tx: number, ty: number, owner: number, escorted = f
         const y = (ty + dy) * SUB + SUB / 2;
         const guarded = st.buildings.some((b) => {
           const atk = BUILDINGS[b.type].attack;
-          if (b.owner === owner || !atk) return false;
+          if (!hostile(st, b.owner, owner) || !atk) return false;
           const c = buildingCenter(b);
           return isqrt((c.x - x) ** 2 + (c.y - y) ** 2) <= atk.range + 2 * SUB;
         });
         // Ni junto a tropas enemigas: la cadena avanza por terreno despejado.
-        const watched = st.units.some((u) => u.owner !== owner && u.type !== 'worker' && isqrt((u.x - x) ** 2 + (u.y - y) ** 2) <= 10 * SUB);
+        const watched = st.units.some((u) => hostile(st, u.owner, owner) && u.type !== 'worker' && isqrt((u.x - x) ** 2 + (u.y - y) ** 2) <= 10 * SUB);
         // Con el ejército escoltando (asalto), las antenas avanzan igual detrás de las tropas.
         if (escorted || (!guarded && !watched)) return { tx: tx + dx, ty: ty + dy };
       }

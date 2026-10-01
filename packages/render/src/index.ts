@@ -1,4 +1,7 @@
-import { Container, Graphics, Matrix, Sprite as PixiSprite, Text, Texture } from 'pixi.js';
+import { Decor, decorReady, decorTexture } from './decor';
+import { hasUnitArt, screenDir, unitFrame, type UnitAnim } from './units';
+import { createTerrain, terrainTexturesReady, type TerrainMesh } from './terrain';
+import { Container, Graphics, Matrix, Sprite as PixiSprite, Text, Texture, type Renderer } from 'pixi.js';
 import {
   BATTERY_TICKS,
   BUILDINGS,
@@ -6,7 +9,9 @@ import {
   footprintVisible,
   isExplored,
   isPowered,
+  linkOf,
   isVisible,
+  batteryMax,
   TECHS,
   GRASS,
   ROCK,
@@ -41,7 +46,27 @@ export function screenToWorld(px: number, py: number): { x: number; y: number } 
   return { x: ((a + b) / 2) * SUB, y: ((b - a) / 2) * SUB };
 }
 
-export const PLAYER_COLORS = [0x3b82f6, 0xef4444];
+/** Colores de jugador (hasta 6): azul, rojo, verde, amarillo, violeta y naranja. */
+export const PLAYER_COLORS = [0x3b82f6, 0xef4444, 0x22c55e, 0xeab308, 0xa855f7, 0xf97316];
+
+/**
+ * Colores por bando desde el punto de vista de `me`: fríos para su equipo (azul, verde, turquesa) y
+ * cálidos para los enemigos (rojo, naranja, amarillo, violeta, rosa). Así nunca hay un aliado rojo.
+ */
+export function assignPlayerColors(teams: readonly number[], me: number): void {
+  const allies = [0x3b82f6, 0x22c55e, 0x14b8a6, 0x6366f1, 0x84cc16, 0x0ea5e9];
+  const enemies = [0xef4444, 0xf97316, 0xeab308, 0xa855f7, 0xec4899, 0xb91c1c];
+  let a = 0;
+  let e = 0;
+  const colors = teams.map((t) => (t === teams[me] ? allies[a++] : enemies[e++]));
+  PLAYER_COLORS.splice(0, PLAYER_COLORS.length, ...colors);
+}
+
+/** Mezcla dos colores (t = 0 → a, t = 1 → b). */
+function mix(a: number, b: number, t: number): number {
+  const ch = (s: number) => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t);
+  return (ch(16) << 16) | (ch(8) << 8) | ch(0);
+}
 
 /** Silueta en pantalla de cada unidad (px a zoom 1): alta y delgada, a escala entre tipos. */
 export const UNIT_BOX: Record<UnitType, { w: number; h: number }> = {
@@ -83,13 +108,37 @@ interface Sprite {
 const MUZZLE: Record<UnitType, number> = { worker: 8, soldier: 15, mech: 52, artillery: 92, truck: 10, colossus: 122, siege: 140 };
 
 type Effect =
-  | { kind: 'line'; x1: number; y1: number; x2: number; y2: number; color: number; width: number; alpha: number; age: number; dur: number }
-  | { kind: 'flash'; x: number; y: number; r: number; color: number; age: number; dur: number }
-  | { kind: 'ring'; x: number; y: number; r0: number; r1: number; color: number; width: number; age: number; dur: number }
-  | { kind: 'debris'; x: number; y: number; parts: { vx: number; vy: number; s: number }[]; color: number; age: number; dur: number }
-  | { kind: 'text'; t: Text; age: number; dur: number }
+  | { kind: 'line'; x1: number; y1: number; x2: number; y2: number; color: number; width: number; alpha: number; age: number; dur: number; spr?: PixiSprite[] }
+  | { kind: 'flash'; x: number; y: number; r: number; color: number; age: number; dur: number; spr?: PixiSprite[] }
+  | { kind: 'ring'; x: number; y: number; r0: number; r1: number; color: number; width: number; age: number; dur: number; spr?: PixiSprite[] }
+  | { kind: 'debris'; x: number; y: number; parts: { vx: number; vy: number; s: number }[]; color: number; age: number; dur: number; spr?: PixiSprite[] }
+  | { kind: 'text'; t: Text; age: number; dur: number; spr?: PixiSprite[] }
   /** Bocanada de humo que crece, sube y se desvanece. */
-  | { kind: 'puff'; x: number; y: number; r0: number; r1: number; rise: number; color: number; alpha: number; age: number; dur: number };
+  | { kind: 'puff'; x: number; y: number; r0: number; r1: number; rise: number; color: number; alpha: number; age: number; dur: number; spr?: PixiSprite[] };
+
+/** Unidad en pantalla: cuerpo (textura horneada), sombra, anillo de selección y barras como sprites. */
+interface UnitSprite {
+  c: Container;
+  body: PixiSprite;
+  shadow: PixiSprite;
+  ring: PixiSprite;
+  bars: PixiSprite[];
+  bodyKey: string;
+  /** Máscara de color de equipo (solo unidades con arte prerenderizado). */
+  team?: PixiSprite;
+}
+
+/** Estado de animación de una unidad con arte: dirección, desfase y último disparo. */
+interface UnitAnimState {
+  dir: number;
+  phase: number;
+  fired: number;
+  sx: number;
+  sy: number;
+}
+
+/** Máximo de efectos vivos a la vez: en batallas enormes se descartan los más viejos. */
+const MAX_EFFECTS = 900;
 
 interface Kick {
   dx: number;
@@ -131,12 +180,43 @@ export class GameView {
   private powerDrawn = -1;
   private showPower = false;
   private time = 0;
+  /** Terreno: se construye en el primer `sync` (necesita el estado para las bases y las vetas). */
+  private readonly terrainLayer = new Container();
+  private terrain: TerrainMesh | null = null;
+  private terrainBuilt = false;
+  private decor: Decor | null = null;
+  private readonly anim = new Map<number, UnitAnimState>();
+  private readonly ventSprites: PixiSprite[] = [];
 
-  /** `me`: jugador local, el único cuya red se dibuja. */
+  private readonly unitSprites = new Map<number, UnitSprite>();
+  private readonly bodyCache = new Map<string, { tex: Texture; ax: number; ay: number }>();
+  private readonly circleTex: Texture;
+  private readonly ringTex: Texture;
+  private readonly pool: PixiSprite[] = [];
+  private readonly textPool: Text[] = [];
+  private frame = 0;
+  /** Zona visible del mundo (px del mundo, con margen): lo de fuera no se actualiza ni se dibuja. */
+  private view = { x0: -Infinity, y0: -Infinity, x1: Infinity, y1: Infinity };
+
+  /** `me`: jugador local, el único cuya red se dibuja. `renderer`: para hornear las texturas de las unidades. */
   constructor(
     map: GameMap,
     private readonly me = 0,
+    private readonly renderer?: Renderer,
   ) {
+    this.circleTex = canvasTexture(64, (x, n) => {
+      x.fillStyle = '#fff';
+      x.beginPath();
+      x.arc(n / 2, n / 2, n / 2 - 1, 0, Math.PI * 2);
+      x.fill();
+    });
+    this.ringTex = canvasTexture(128, (x, n) => {
+      x.strokeStyle = '#fff';
+      x.lineWidth = 6;
+      x.beginPath();
+      x.arc(n / 2, n / 2, n / 2 - 4, 0, Math.PI * 2);
+      x.stroke();
+    });
     // Niebla: una textura de 1 píxel por casilla, proyectada en isométrico con suavizado (bordes suaves).
     this.fogCanvas.width = map.w;
     this.fogCanvas.height = map.h;
@@ -144,8 +224,128 @@ export class GameView {
     this.fogTex.source.scaleMode = 'linear';
     this.fog = new PixiSprite(this.fogTex);
     this.fog.setFromMatrix(new Matrix(TW / 2, TH / 2, -TW / 2, TH / 2, 0, 0));
-    this.world.addChild(drawTerrain(map), this.ventGfx, this.powerGfx, this.groundFx, this.entityLayer, this.fxGfx, this.projGfx, this.fxLayer, this.fog, this.ghost);
+    this.world.addChild(this.terrainLayer, this.ventGfx, this.powerGfx, this.groundFx, this.entityLayer, this.fxGfx, this.projGfx, this.fxLayer, this.fog, this.ghost);
     this.entityLayer.sortableChildren = true;
+  }
+
+  /** Zona visible, en coordenadas del mundo (px antes del zoom). Se llama cada frame desde el cliente. */
+  setViewport(x0: number, y0: number, x1: number, y1: number): void {
+    const m = 250;
+    this.view = { x0: x0 - m, y0: y0 - m, x1: x1 + m, y1: y1 + m };
+  }
+
+  private inView(x: number, y: number): boolean {
+    return x >= this.view.x0 && x <= this.view.x1 && y >= this.view.y0 && y <= this.view.y1;
+  }
+
+  /** Textura horneada del cuerpo de una unidad (una por tipo, color y estado), con su punto de anclaje en los pies. */
+  private bodyTexture(b: BodyState): { tex: Texture; ax: number; ay: number } {
+    const key = `${b.type}|${b.color}|${b.light}|${b.carry}|${b.deployState}|${b.nodePowered}`;
+    let t = this.bodyCache.get(key);
+    if (t) return t;
+    const g = new Graphics();
+    drawUnitBody(g, b);
+    const bounds = g.getLocalBounds();
+    const tex = this.renderer ? this.renderer.generateTexture({ target: g, resolution: 3, antialias: true }) : Texture.EMPTY;
+    t = { tex, ax: -bounds.x / Math.max(1, bounds.width), ay: -bounds.y / Math.max(1, bounds.height) };
+    g.destroy();
+    this.bodyCache.set(key, t);
+    return t;
+  }
+
+  /**
+   * Unidad prerenderizada: elige dirección (hacia donde se mueve o hacia su objetivo) y fotograma
+   * (disparo reciente, apuntando, caminando o en reposo).
+   */
+  private animateUnit(st: State, u: Unit, s: UnitSprite, sx: number, sy: number, color: number): void {
+    let a = this.anim.get(u.id);
+    if (!a) {
+      a = { dir: 2, phase: (u.id * 0.37) % 1, fired: -9, sx, sy };
+      this.anim.set(u.id, a);
+    }
+    const dx = sx - a.sx;
+    const dy = sy - a.sy;
+    a.sx = sx;
+    a.sy = sy;
+    const moving = dx * dx + dy * dy > 0.0004;
+    const o = u.order;
+    const target = o.kind === 'attack' ? (st.byId.get(o.target) ?? st.buildingsById.get(o.target)) : undefined;
+    if (moving) a.dir = screenDir(dx, dy);
+    else if (target) {
+      const t = 'tx' in target ? buildingCenter(target) : target;
+      a.dir = screenDir(isoX(t.x, t.y) - sx, isoY(t.x, t.y) - sy);
+    }
+    const since = this.time - a.fired;
+    let anim: UnitAnim = 'idle';
+    let f = Math.floor((this.time * 3 + a.phase * 6) % 6);
+    const working = u.type === 'worker' && !moving && (o.kind === 'gather' || o.kind === 'build' || o.kind === 'repair');
+    if (u.type === 'truck') {
+      // Camión: los fotogramas de "fire" son el despliegue (gatos, mástil y parábolas); el último, desplegado.
+      if (u.deployState === 2) {
+        anim = 'fire';
+        f = 3;
+      } else if (u.deployState === 1) {
+        anim = 'fire';
+        f = Math.min(3, Math.floor((1 - u.deployTicks / 60) * 4));
+      } else if (moving) {
+        anim = 'walk';
+        f = Math.floor((this.time * 8 + a.phase * 8) % 8);
+      }
+    } else if (working) {
+      anim = 'fire';
+      f = Math.floor((this.time * 6 + a.phase * 4) % 4);
+    } else if (since < 0.36) {
+      anim = 'fire';
+      f = Math.min(3, Math.floor(since / 0.09));
+    } else if (target && !moving) {
+      anim = 'fire';
+      f = 0;
+    } else if (moving) {
+      anim = 'walk';
+      f = Math.floor((this.time * 7 + a.phase * 8) % 8);
+    }
+    const fr = unitFrame(u.type, anim, a.dir, f);
+    if (!fr) return;
+    if (s.body.texture !== fr.body) {
+      s.body.texture = fr.body;
+      s.body.anchor.copyFrom(fr.body.defaultAnchor ?? { x: 0.5, y: 1 });
+    }
+    if (s.team) {
+      s.team.visible = !!fr.team;
+      if (fr.team && s.team.texture !== fr.team) {
+        s.team.texture = fr.team;
+        s.team.anchor.copyFrom(fr.team.defaultAnchor ?? { x: 0.5, y: 1 });
+      }
+      s.team.tint = color;
+    }
+    if (s.bodyKey !== 'art') {
+      // La sombra va horneada en el sprite; el anillo de selección conserva su tamaño.
+      s.bodyKey = 'art';
+      s.shadow.visible = false;
+      const r = (u.radius * TW) / (SUB * Math.SQRT2) + 2;
+      s.ring.width = (r + 3) * 2;
+      s.ring.height = r + 3;
+    }
+  }
+
+  private unitSprite(id: number): UnitSprite {
+    let s = this.unitSprites.get(id);
+    if (s) return s;
+    const c = new Container();
+    const shadow = new PixiSprite(this.circleTex);
+    shadow.anchor.set(0.5);
+    shadow.tint = 0x000000;
+    shadow.alpha = 0.3;
+    const ring = new PixiSprite(this.ringTex);
+    ring.anchor.set(0.5);
+    const body = new PixiSprite(Texture.EMPTY);
+    const bars = [0, 1, 2, 3].map(() => new PixiSprite(Texture.WHITE));
+    const team = new PixiSprite(Texture.EMPTY);
+    c.addChild(shadow, ring, body, team, ...bars);
+    s = { c, body, shadow, ring, bars, bodyKey: '', team };
+    this.unitSprites.set(id, s);
+    this.entityLayer.addChild(c);
+    return s;
   }
 
   /** Muestra u oculta la zona de cobertura propia (con mechas seleccionados, al colocar red o con Alt). */
@@ -154,8 +354,8 @@ export class GameView {
   }
 
   /**
-   * Cobertura propia como una sola mancha: tinte muy suave por casilla y un único borde donde la
-   * casilla vecina no tiene energía. Así la unión de muchas antenas no se ve como círculos solapados.
+   * Cobertura como una sola mancha por red: tinte muy suave por casilla y un único borde donde la
+   * casilla vecina queda fuera. Verde la propia, azul la de los aliados y turquesa donde se solapan.
    */
   private drawPower(st: State): void {
     this.powerGfx.visible = this.showPower;
@@ -164,43 +364,65 @@ export class GameView {
     const g = this.powerGfx;
     g.clear();
     const { w, h } = st.map;
-    const bit = 1 << this.me;
-    const on = (tx: number, ty: number) => tx >= 0 && ty >= 0 && tx < w && ty < h && (st.power[ty * w + tx] & bit) !== 0;
+    const mine = 1 << this.me;
+    let allies = 0;
+    st.players.forEach((pl, q) => {
+      if (q !== this.me && pl.team === st.players[this.me].team) allies |= 1 << q;
+    });
+    const has = (tx: number, ty: number, m: number) => tx >= 0 && ty >= 0 && tx < w && ty < h && (st.power[ty * w + tx] & m) !== 0;
     const corner = (tx: number, ty: number) => [isoX(tx * SUB, ty * SUB), isoY(tx * SUB, ty * SUB)] as const;
-    // Dos pasadas: primero el tinte de cada casilla, después el borde exterior como un solo trazo.
+    // Tinte de cada casilla según a qué redes pertenece.
     for (let ty = 0; ty < h; ty++) {
       for (let tx = 0; tx < w; tx++) {
-        if (!on(tx, ty)) continue;
+        const own = has(tx, ty, mine);
+        const ally = has(tx, ty, allies);
+        if (!own && !ally) continue;
         const [ax, ay] = corner(tx, ty);
         const [bx, by] = corner(tx + 1, ty);
         const [cx, cy] = corner(tx + 1, ty + 1);
         const [dx, dy] = corner(tx, ty + 1);
-        g.poly([ax, ay, bx, by, cx, cy, dx, dy]).fill({ color: 0x7dffb0, alpha: 0.08 });
+        g.poly([ax, ay, bx, by, cx, cy, dx, dy]).fill({ color: own && ally ? POWER_BOTH : own ? POWER_OWN : POWER_ALLY, alpha: own && ally ? 0.16 : 0.08 });
       }
     }
-    for (let ty = 0; ty < h; ty++) {
-      for (let tx = 0; tx < w; tx++) {
-        if (!on(tx, ty)) continue;
-        const [ax, ay] = corner(tx, ty);
-        const [bx, by] = corner(tx + 1, ty);
-        const [cx, cy] = corner(tx + 1, ty + 1);
-        const [dx, dy] = corner(tx, ty + 1);
-        if (!on(tx, ty - 1)) g.moveTo(ax, ay).lineTo(bx, by);
-        if (!on(tx + 1, ty)) g.moveTo(bx, by).lineTo(cx, cy);
-        if (!on(tx, ty + 1)) g.moveTo(cx, cy).lineTo(dx, dy);
-        if (!on(tx - 1, ty)) g.moveTo(dx, dy).lineTo(ax, ay);
+    // Borde exterior de cada red como un solo trazo.
+    const border = (m: number, color: number) => {
+      if (!m) return;
+      for (let ty = 0; ty < h; ty++) {
+        for (let tx = 0; tx < w; tx++) {
+          if (!has(tx, ty, m)) continue;
+          const [ax, ay] = corner(tx, ty);
+          const [bx, by] = corner(tx + 1, ty);
+          const [cx, cy] = corner(tx + 1, ty + 1);
+          const [dx, dy] = corner(tx, ty + 1);
+          if (!has(tx, ty - 1, m)) g.moveTo(ax, ay).lineTo(bx, by);
+          if (!has(tx + 1, ty, m)) g.moveTo(bx, by).lineTo(cx, cy);
+          if (!has(tx, ty + 1, m)) g.moveTo(cx, cy).lineTo(dx, dy);
+          if (!has(tx - 1, ty, m)) g.moveTo(dx, dy).lineTo(ax, ay);
+        }
       }
+      g.stroke({ width: 2, color, alpha: 0.6 });
+    };
+    border(allies, POWER_ALLY);
+    border(mine, POWER_OWN);
+    // Enlaces entre nodos propios con energía (edificios y camiones desplegados).
+    const nodes: { x: number; y: number; lift: number; link: number }[] = [];
+    for (const b of st.buildings) {
+      const pw = BUILDINGS[b.type].power;
+      if (b.owner !== this.me || !b.powered || !pw) continue;
+      const c = buildingCenter(b);
+      nodes.push({ x: c.x, y: c.y, lift: 40, link: linkOf(st, this.me, pw.link, b.type === 'relay') });
     }
-    g.stroke({ width: 2, color: 0x7dffb0, alpha: 0.6 });
-    // Enlaces entre nodos propios con energía.
-    const nodes = st.buildings.filter((b) => b.owner === this.me && b.powered && BUILDINGS[b.type].power);
+    for (const u of st.units) {
+      if (u.owner !== this.me || u.type !== 'truck' || u.deployState !== 2 || !u.nodePowered) continue;
+      nodes.push({ x: u.x, y: u.y, lift: 50, link: linkOf(st, this.me, BUILDINGS.relay.power!.link, true) });
+    }
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        const a = buildingCenter(nodes[i]);
-        const b = buildingCenter(nodes[j]);
-        const link = Math.max(BUILDINGS[nodes[i].type].power!.link, BUILDINGS[nodes[j].type].power!.link) * SUB;
+        const a = nodes[i];
+        const b = nodes[j];
+        const link = Math.max(a.link, b.link) * SUB;
         if ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 > link * link) continue;
-        dashed(g, isoX(a.x, a.y), isoY(a.x, a.y) - 40, isoX(b.x, b.y), isoY(b.x, b.y) - 40, 0x7dffb0, 0.35);
+        dashed(g, isoX(a.x, a.y), isoY(a.x, a.y) - a.lift, isoX(b.x, b.y), isoY(b.x, b.y) - b.lift, POWER_OWN, 0.35);
       }
     }
   }
@@ -229,10 +451,31 @@ export class GameView {
     const g = this.ventGfx;
     g.clear();
     const pulse = 0.55 + 0.45 * Math.sin(this.time * 2.4);
+    const tex = [decorTexture('vent_0_0'), decorTexture('vent_1_0')];
+    if (tex[0] && tex[1] && this.ventSprites.length === 0) {
+      // Cristales prerenderizados, ordenados en profundidad con unidades y edificios.
+      st.vents.forEach((v, i) => {
+        const spr = new PixiSprite(tex[i % 2]!);
+        spr.position.set(isoX(v.tx * SUB + SUB / 2, v.ty * SUB + SUB / 2), isoY(v.tx * SUB + SUB / 2, v.ty * SUB + SUB / 2));
+        spr.zIndex = spr.position.y;
+        this.entityLayer.addChild(spr);
+        this.ventSprites.push(spr);
+      });
+    }
+    // Una central terminada encima tapa los cristales de su veta.
+    st.vents.forEach((v, i) => {
+      const spr = this.ventSprites[i];
+      if (spr) spr.visible = !st.buildings.some((b) => b.type === 'plant' && b.complete && b.hp > 0 && v.tx >= b.tx && v.tx < b.tx + b.size && v.ty >= b.ty && v.ty < b.ty + b.size);
+    });
     for (const v of st.vents) {
       if (!isExplored(st, this.me, v.tx * SUB, v.ty * SUB)) continue;
       const x = isoX(v.tx * SUB + SUB / 2, v.ty * SUB + SUB / 2);
       const y = isoY(v.tx * SUB + SUB / 2, v.ty * SUB + SUB / 2);
+      if (this.ventSprites.length) {
+        // Solo el halo que late; las grietas brillantes las pinta el shader del terreno.
+        g.ellipse(x, y, 34 + 6 * pulse, 17 + 3 * pulse).fill({ color: 0x3ee6ff, alpha: 0.1 * pulse });
+        continue;
+      }
       g.ellipse(x, y, 58, 29).fill({ color: 0x1c1428, alpha: 0.55 });
       g.ellipse(x, y, 40 + 6 * pulse, 20 + 3 * pulse).fill({ color: 0x3ee6ff, alpha: 0.12 * pulse });
       g.moveTo(x - 44, y + 4).lineTo(x - 18, y - 6).lineTo(x + 6, y + 6).lineTo(x + 40, y - 4).stroke({ width: 3, color: 0x3ee6ff, alpha: 0.5 + 0.4 * pulse });
@@ -251,6 +494,19 @@ export class GameView {
   /** Dibuja el estado interpolando entre la posición del tick anterior y la actual. */
   sync(st: State, prev: ReadonlyMap<number, Pos>, alpha: number, selected: ReadonlySet<number>): void {
     const seen = new Set<number>();
+    if (!this.terrainBuilt) {
+      this.terrainBuilt = true;
+      if (terrainTexturesReady()) {
+        this.terrain = createTerrain(st, isoX, isoY);
+        this.terrainLayer.addChild(this.terrain.mesh);
+      } else this.terrainLayer.addChild(drawTerrain(st.map));
+      if (decorReady()) {
+        this.decor = new Decor(st, this.entityLayer, isoX, isoY);
+        this.terrainLayer.addChild(this.decor.ground);
+      }
+    }
+    this.decor?.update(this.view, st.units, st.buildings);
+    this.terrain?.setTime(this.time);
     this.drawVents(st);
     this.drawPower(st);
     this.drawFog(st);
@@ -258,10 +514,31 @@ export class GameView {
     for (const n of st.nodes) {
       if (!isExplored(st, me, n.tx * SUB, n.ty * SUB)) continue;
       seen.add(n.id);
-      const s = this.sprite(n.id, `${Math.ceil(n.amount / 100)}`, (g) => drawNode(g, n));
       const c = n.tx * SUB + SUB / 2;
       const d = n.ty * SUB + SUB / 2;
-      s.c.position.set(isoX(c, d), isoY(c, d));
+      const nx = isoX(c, d);
+      const ny = isoY(c, d);
+      const known = this.sprites.get(n.id);
+      if (!this.inView(nx, ny)) {
+        if (known) known.c.visible = false;
+        continue;
+      }
+      const ore = decorTexture(`ore_${n.id % 3}_0`);
+      const s = this.sprite(n.id, `${Math.ceil(n.amount / 100)}`, (g, c) => {
+        if (!ore) return drawNode(g, n);
+        // Veta prerenderizada: encoge a medida que se agota.
+        let spr = c.children.find((ch) => ch.label === 'ore') as PixiSprite | undefined;
+        if (!spr) {
+          spr = new PixiSprite(ore);
+          spr.label = 'ore';
+          if (n.id % 2) spr.scale.x = -1;
+          c.addChild(spr);
+        }
+        const k = 1.5 * (0.55 + 0.45 * Math.min(1, n.amount / 400));
+        spr.scale.set(Math.sign(spr.scale.x) * k, k);
+      });
+      s.c.visible = true;
+      s.c.position.set(nx, ny);
       s.c.zIndex = s.c.position.y;
     }
     for (const b of st.buildings) {
@@ -281,25 +558,61 @@ export class GameView {
       const train = b.queue.length ? Math.floor((100 * b.trainTicks) / UNITS[b.queue[0]].trainTime) : -1;
       const gen = st.players[b.owner].gen;
       const res = b.research ? Math.floor((100 * b.research.ticks) / TECHS[b.research.tech].time) : -1;
-      const s = this.sprite(b.id, `${b.hp}|${sel}|${prog}|${train}|${b.queue.length}|${b.powered}|${gen}|${res}`, (g, c) => drawBuilding(g, c, b, sel, prog, res >= 0 ? res : train, gen));
       const half = (b.size * SUB) / 2;
-      s.c.position.set(isoX(b.tx * SUB + half, b.ty * SUB + half), isoY(b.tx * SUB + half, b.ty * SUB + half));
+      const px = isoX(b.tx * SUB + half, b.ty * SUB + half);
+      const py = isoY(b.tx * SUB + half, b.ty * SUB + half);
+      if (!this.inView(px, py) && !known) continue;
+      // Solo se redibuja cuando cambia su forma (no con cada golpe): la vida va en barras aparte.
+      const s = this.sprite(b.id, `${sel}|${prog}|${b.powered}|${gen}|${b.complete}`, (g, c) => drawBuilding(g, c, b, sel, prog, -1, gen));
+      s.c.position.set(px, py);
       s.c.zIndex = s.c.position.y;
       s.c.tint = 0xffffff;
+      s.c.visible = this.inView(px, py);
+      if (s.c.visible) this.buildingBars(s.c, sel || b.hp < b.maxHp ? b.hp / b.maxHp : -1, res >= 0 ? res / 100 : train >= 0 ? train / 100 : -1);
       if (b.owner !== me) s.foot = { tx: b.tx, ty: b.ty, size: b.size };
     }
+    const alive = new Set<number>();
     for (const u of st.units) {
-      seen.add(u.id);
-      const sel = selected.has(u.id);
-      // Estado de energía: conectada, fuera de la red (con batería) o apagada.
-      const power = u.needsPower && !st.players[u.owner].noPower ? (u.battery <= 0 ? 'off' : isPowered(st, u.owner, u.x, u.y) ? (u.battery < BATTERY_TICKS ? 'charge' : 'on') : 'out') : '';
-      const s = this.sprite(u.id, `${u.hp}|${sel}|${u.carry > 0}|${power}|${Math.ceil(u.battery / 12)}|${u.deployState}|${u.nodePowered}|${u.maxHp}`, (g) => drawUnit(g, u, sel, power));
-      s.c.alpha = power === 'off' ? 0.6 : 1;
-      s.c.visible = u.owner === me || isVisible(st, me, u.x, u.y);
+      alive.add(u.id);
       const p = prev.get(u.id) ?? u;
       const x = p.x + (u.x - p.x) * alpha;
       const y = p.y + (u.y - p.y) * alpha;
-      s.c.position.set(isoX(x, y), isoY(x, y));
+      const sx = isoX(x, y);
+      const sy = isoY(x, y);
+      const shown = (u.owner === me || isVisible(st, me, u.x, u.y)) && this.inView(sx, sy);
+      const existing = this.unitSprites.get(u.id);
+      if (!shown) {
+        if (existing) existing.c.visible = false;
+        continue;
+      }
+      const s = this.unitSprite(u.id);
+      s.c.visible = true;
+      const sel = selected.has(u.id);
+      // Estado de energía: conectada, fuera de la red (con batería) o apagada.
+      const bmax = batteryMax(st, u.owner);
+      const power = u.needsPower && !st.players[u.owner].noPower ? (u.battery <= 0 ? 'off' : isPowered(st, u.owner, u.x, u.y) ? (u.battery < bmax ? 'charge' : 'on') : 'out') : '';
+      const body: BodyState = { type: u.type, color: PLAYER_COLORS[u.owner] ?? 0xcccccc, carry: u.carry > 0, deployState: u.deployState, nodePowered: u.nodePowered, light: power === 'charge' ? 'on' : power };
+      const bodyKey = `${body.type}|${body.color}|${body.light}|${body.carry}|${body.deployState}|${body.nodePowered}`;
+      if (hasUnitArt(u.type)) {
+        this.animateUnit(st, u, s, sx, sy, body.color);
+      } else if (bodyKey !== s.bodyKey) {
+        const t = this.bodyTexture(body);
+        s.body.texture = t.tex;
+        s.body.anchor.set(t.ax, t.ay);
+        s.bodyKey = bodyKey;
+        const r = (u.radius * TW) / (SUB * Math.SQRT2) + 2;
+        s.shadow.width = r * 2;
+        s.shadow.height = r;
+        s.ring.width = (r + 3) * 2;
+        s.ring.height = r + 3;
+      }
+      s.ring.visible = sel;
+      s.c.alpha = power === 'off' ? 0.6 : 1;
+      const box = UNIT_BOX[u.type];
+      const bw = Math.max(20, box.w + 10);
+      setBar(s.bars[0], s.bars[1], -box.h - 8, bw, sel || u.hp < u.maxHp ? u.hp / u.maxHp : -1, hpColor(u.hp / u.maxHp));
+      setBar(s.bars[2], s.bars[3], -box.h - 14, bw, power === 'out' || power === 'charge' ? u.battery / bmax : -1, power === 'out' ? 0xff8a3c : 0x7dffb0);
+      s.c.position.set(sx, sy);
       s.c.zIndex = s.c.position.y;
       const k = this.kicks.get(u.id);
       if (k) {
@@ -307,6 +620,12 @@ export class GameView {
         s.c.x += k.dx * f;
         s.c.y += k.dy * f;
       }
+    }
+    for (const id of this.anim.keys()) if (!alive.has(id)) this.anim.delete(id);
+    for (const [id, s] of this.unitSprites) {
+      if (alive.has(id)) continue;
+      s.c.destroy({ children: true });
+      this.unitSprites.delete(id);
     }
     for (const [id, s] of this.sprites) {
       // Un edificio enemigo destruido sin que lo veas sigue ahí como fantasma hasta que vuelvas a mirar.
@@ -375,11 +694,27 @@ export class GameView {
     }
     if (s.key !== key) {
       s.g.clear();
-      for (const child of s.c.children.slice(1)) child.destroy();
       draw(s.g, s.c);
       s.key = key;
     }
     return s;
+  }
+
+  /** Barras de un edificio (vida y producción) como sprites, sin redibujar su forma. */
+  private buildingBars(c: Container, hp: number, work: number): void {
+    const spec = BAR_SPEC.get(c);
+    if (!spec) return;
+    let bars = c.children.filter((ch) => ch.label === 'bar') as PixiSprite[];
+    if (bars.length === 0) {
+      bars = [0, 1, 2, 3].map(() => {
+        const b = new PixiSprite(Texture.WHITE);
+        b.label = 'bar';
+        c.addChild(b);
+        return b;
+      });
+    }
+    setBar(bars[0], bars[1], spec.y, spec.w, hp, hpColor(hp));
+    setBar(bars[2], bars[3], spec.y + 7, spec.w, work, 0xf3e9d8);
   }
 
   /** Marca breve en el suelo para confirmar una orden (x, y en subunidades). */
@@ -394,6 +729,11 @@ export class GameView {
   /** Convierte los efectos de un tick en animaciones. `me` es el jugador local (para el "+metal"). */
   addFx(fx: readonly Fx[], st: State, me: number): void {
     for (const f of fx) {
+      // Disparo de una unidad con arte: arranca su animación de fuego.
+      if (f.kind === 'shot' || f.kind === 'launch') {
+        const a = this.anim.get(f.unit);
+        if (a) a.fired = this.time;
+      }
       // Lo que pasa en la niebla no se ve (salvo lo propio).
       if (f.owner !== me && !isVisible(st, me, f.x, f.y)) continue;
       switch (f.kind) {
@@ -405,12 +745,18 @@ export class GameView {
           this.effects.push({ kind: 'flash', x: isoX(f.nx, f.ny), y: isoY(f.nx, f.ny) - 8, r: 3, color: 0xd6e2f0, age: 0, dur: 0.15 });
           break;
         }
+        case 'income':
         case 'deliver': {
+          // Metal entregado (verde) o goteo de una central extra en Gen-3 (dorado, más alto).
           if (f.owner !== me) break;
-          const t = new Text({ text: `+${f.amount}`, style: { fontFamily: 'Menlo, monospace', fontSize: 12, fill: 0x7dffb0, stroke: { color: 0x111111, width: 3 } } });
+          const t = this.textPool.pop() ?? new Text({ text: '', style: { fontFamily: 'Menlo, monospace', fontSize: 12, fill: 0x7dffb0, stroke: { color: 0x111111, width: 3 } } });
+          if (t.text !== `+${f.amount}`) t.text = `+${f.amount}`;
+          t.style.fill = f.kind === 'income' ? 0xffd166 : 0x7dffb0;
           t.anchor.set(0.5);
-          t.position.set(isoX(f.x, f.y), isoY(f.x, f.y) - 24);
-          this.fxLayer.addChild(t);
+          t.alpha = 1;
+          t.visible = true;
+          t.position.set(isoX(f.x, f.y), isoY(f.x, f.y) - (f.kind === 'income' ? 60 : 24));
+          if (!t.parent) this.fxLayer.addChild(t);
           this.effects.push({ kind: 'text', t, age: 0, dur: 1 });
           break;
         }
@@ -437,8 +783,11 @@ export class GameView {
           break;
         }
         case 'towerShot': {
-          const x1 = isoX(f.x, f.y) + 22;
-          const y1 = isoY(f.x, f.y) - BUILDING_HEIGHT.tower + 8 - 16;
+          // Boca del cañón del sprite de la torre (art/render_buildings.py): 0,64 / 0,40 casillas y 2,19 de alto.
+          const mx = f.x + 0.64 * SUB;
+          const my = f.y + 0.4 * SUB;
+          const x1 = isoX(mx, my);
+          const y1 = isoY(mx, my) - 2.19 * TILE_HEIGHT_PX;
           const target = st.byId.get(f.target);
           const x2 = isoX(f.tx, f.ty);
           const y2 = isoY(f.tx, f.ty) - (target ? UNIT_BOX[target.type].h * 0.5 : 10);
@@ -663,49 +1012,111 @@ export class GameView {
   }
 
   /** Avanza y dibuja las animaciones. Llamar una vez por frame con el tiempo real transcurrido. */
+  private take(tex: Texture): PixiSprite {
+    const sp = this.pool.pop() ?? new PixiSprite();
+    sp.texture = tex;
+    sp.visible = true;
+    sp.rotation = 0;
+    sp.anchor.set(0.5);
+    if (!sp.parent) this.fxLayer.addChild(sp);
+    return sp;
+  }
+
+  private release(e: Effect): void {
+    if (e.kind === 'text') {
+      e.t.visible = false;
+      this.textPool.push(e.t);
+      return;
+    }
+    for (const sp of e.spr ?? []) {
+      sp.visible = false;
+      this.pool.push(sp);
+    }
+    e.spr = undefined;
+  }
+
+  /**
+   * Avanza y dibuja las animaciones. Cada efecto usa sprites reutilizados (un círculo, un anillo o un
+   * rectángulo blanco teñido) en vez de redibujar formas vectoriales en cada frame.
+   */
   updateFx(dt: number): void {
     this.time += dt;
+    this.frame++;
     for (const [id, k] of this.kicks) if ((k.age += dt) >= k.dur) this.kicks.delete(id);
-    const g = this.fxGfx;
-    g.clear();
+    // En batallas enormes, descartar los efectos más viejos antes que dejar caer el rendimiento.
+    if (this.effects.length > MAX_EFFECTS) for (const e of this.effects.splice(0, this.effects.length - MAX_EFFECTS)) this.release(e);
     this.effects = this.effects.filter((e) => {
       e.age += dt;
       if (e.age >= e.dur) {
-        if (e.kind === 'text') e.t.destroy();
+        this.release(e);
         return false;
       }
       if (e.age < 0) return true;
       const p = e.age / e.dur;
       switch (e.kind) {
-        case 'line':
-          g.moveTo(e.x1, e.y1).lineTo(e.x2, e.y2).stroke({ width: e.width, color: e.color, alpha: e.alpha * (1 - p) });
-          break;
-        case 'flash':
-          g.circle(e.x, e.y, e.r * (0.6 + 0.6 * p)).fill({ color: e.color, alpha: 0.85 * (1 - p) });
-          break;
-        case 'ring': {
-          const r = e.r0 + (e.r1 - e.r0) * p;
-          g.ellipse(e.x, e.y, r, r / 2).stroke({ width: e.width, color: e.color, alpha: 1 - p });
+        case 'line': {
+          const sp = (e.spr ??= [this.take(Texture.WHITE)])[0];
+          sp.anchor.set(0, 0.5);
+          sp.position.set(e.x1, e.y1);
+          sp.width = Math.hypot(e.x2 - e.x1, e.y2 - e.y1);
+          sp.height = e.width;
+          sp.rotation = Math.atan2(e.y2 - e.y1, e.x2 - e.x1);
+          sp.tint = e.color;
+          sp.alpha = e.alpha * (1 - p);
           break;
         }
-        case 'debris':
-          for (const q of e.parts) {
-            const t = e.age;
-            g.rect(e.x + q.vx * t - q.s / 2, e.y + q.vy * t + 220 * t * t - q.s / 2, q.s, q.s).fill({ color: e.color, alpha: 1 - p });
-          }
+        case 'flash': {
+          const sp = (e.spr ??= [this.take(this.circleTex)])[0];
+          const r = e.r * (0.6 + 0.6 * p);
+          sp.position.set(e.x, e.y);
+          sp.width = r * 2;
+          sp.height = r * 2;
+          sp.tint = e.color;
+          sp.alpha = 0.85 * (1 - p);
           break;
+        }
+        case 'ring': {
+          const sp = (e.spr ??= [this.take(this.ringTex)])[0];
+          const r = e.r0 + (e.r1 - e.r0) * p;
+          sp.position.set(e.x, e.y);
+          sp.width = r * 2;
+          sp.height = r;
+          sp.tint = e.color;
+          sp.alpha = 1 - p;
+          break;
+        }
+        case 'debris': {
+          const parts = (e.spr ??= e.parts.map(() => this.take(Texture.WHITE)));
+          const t = e.age;
+          e.parts.forEach((q, k) => {
+            const sp = parts[k];
+            sp.position.set(e.x + q.vx * t, e.y + q.vy * t + 220 * t * t);
+            sp.width = q.s;
+            sp.height = q.s;
+            sp.tint = e.color;
+            sp.alpha = 1 - p;
+          });
+          break;
+        }
         case 'text':
           e.t.y -= 22 * dt;
           e.t.alpha = 1 - p;
           break;
-        case 'puff':
-          g.circle(e.x, e.y - e.rise * p, e.r0 + (e.r1 - e.r0) * Math.sqrt(p)).fill({ color: e.color, alpha: e.alpha * (1 - p) });
+        case 'puff': {
+          const sp = (e.spr ??= [this.take(this.circleTex)])[0];
+          const r = e.r0 + (e.r1 - e.r0) * Math.sqrt(p);
+          sp.position.set(e.x, e.y - e.rise * p);
+          sp.width = r * 2;
+          sp.height = r * 2;
+          sp.tint = e.color;
+          sp.alpha = e.alpha * (1 - p);
           break;
+        }
       }
       return true;
     });
-    // Estela de humo de los cohetes en vuelo.
-    if (dt > 0) for (const t of this.rocketTails) this.effects.push(t.small ? { kind: 'puff', x: t.x, y: t.y, r0: 1.5, r1: 4, rise: 2, color: 0xffd08a, alpha: 0.45, age: 0, dur: 0.35 } : { kind: 'puff', x: t.x, y: t.y, r0: 2.5, r1: 9, rise: 6, color: 0xc9c2b4, alpha: 0.55, age: 0, dur: 0.9 });
+    // Estela de humo de los cohetes en vuelo (un frame sí y otro no: suficiente para verse continua).
+    if (dt > 0 && this.frame % 2 === 0) for (const t of this.rocketTails) this.effects.push(t.small ? { kind: 'puff', x: t.x, y: t.y, r0: 1.5, r1: 4, rise: 2, color: 0xffd08a, alpha: 0.45, age: 0, dur: 0.35 } : { kind: 'puff', x: t.x, y: t.y, r0: 2.5, r1: 9, rise: 6, color: 0xc9c2b4, alpha: 0.55, age: 0, dur: 0.9 });
   }
 
   /** Huella fantasma del edificio a colocar (null la oculta). */
@@ -724,6 +1135,11 @@ export class GameView {
       .stroke({ width: 2, color, alpha: 0.9 });
   }
 }
+
+/** Colores de la red: propia, aliada y la zona donde se solapan. */
+const POWER_OWN = 0x7dffb0;
+const POWER_ALLY = 0x6aa8ff;
+const POWER_BOTH = 0x4fe3e3;
 
 function dashed(g: Graphics, x1: number, y1: number, x2: number, y2: number, color = 0xfacc15, alpha = 0.6): void {
   const len = Math.hypot(x2 - x1, y2 - y1);
@@ -754,6 +1170,33 @@ function drawTerrain(map: GameMap): Graphics {
   return g;
 }
 
+/** Textura a partir de un lienzo 2D (círculos y anillos para efectos y sombras). */
+function canvasTexture(n: number, draw: (x: CanvasRenderingContext2D, n: number) => void): Texture {
+  const c = document.createElement('canvas');
+  c.width = n;
+  c.height = n;
+  draw(c.getContext('2d')!, n);
+  const t = Texture.from(c);
+  t.source.scaleMode = 'linear';
+  return t;
+}
+
+/** Barra (fondo + relleno) hecha con dos sprites. `frac` < 0 la oculta. */
+function setBar(bg: PixiSprite, fg: PixiSprite, y: number, w: number, frac: number, color: number): void {
+  const on = frac >= 0;
+  bg.visible = on;
+  fg.visible = on;
+  if (!on) return;
+  bg.position.set(-w / 2, y);
+  bg.width = w;
+  bg.height = 4;
+  bg.tint = 0x111111;
+  fg.position.set(-w / 2, y);
+  fg.width = Math.max(0, w * Math.min(1, frac));
+  fg.height = 4;
+  fg.tint = color;
+}
+
 function hpColor(frac: number): number {
   return frac > 0.6 ? 0x4ade80 : frac > 0.3 ? 0xfacc15 : 0xef4444;
 }
@@ -777,6 +1220,24 @@ function drawNode(g: Graphics, n: MetalNode): void {
     g.poly([x, -hh, x + w / 2, 2, x + 1, 3]).fill(0x5f6b7a);
     g.moveTo(x - 1, -hh + 4).lineTo(x - w / 4, -2).stroke({ width: 1, color: 0xd6e2f0, alpha: 0.8 });
   }
+}
+
+/** Barras (vida y producción) de un edificio: posición y ancho, calculados al dibujarlo. */
+const BAR_SPEC = new WeakMap<Container, { y: number; w: number }>();
+
+/**
+ * Etiqueta de un edificio: un único Text por edificio que se reutiliza (crear textos es caro y cada uno
+ * es una textura en la GPU; recrearlos con cada golpe llegaba a agotar la memoria de vídeo).
+ */
+function setLabel(c: Container, text: string, y: number, size: number): void {
+  let t = c.children.find((ch) => ch.label === 'label') as Text | undefined;
+  if (!t) {
+    t = new Text({ text, style: { fontFamily: 'Menlo, monospace', fontSize: size, fill: 0xf3e9d8, stroke: { color: 0x111111, width: 3 } } });
+    t.label = 'label';
+    t.anchor.set(0.5);
+    c.addChild(t);
+  } else if (t.text !== text) t.text = text;
+  t.position.set(0, y);
 }
 
 /** Paleta de los edificios según la generación de su dueño (reskin al avanzar). */
@@ -816,7 +1277,57 @@ function genDetails(g: Graphics, hw: number, hh: number, h: number, gen: number)
   }
 }
 
+/** Píxeles de pantalla por casilla de altura en los renders (elevación de 30°: 64/√2 · cos 30°). */
+const TILE_HEIGHT_PX = (64 / Math.SQRT2) * Math.cos(Math.PI / 6);
+
+/** Edificios con arte prerenderizado en Blender (ver art/render_buildings.py): frame del atlas. */
+const BUILDING_ART: Partial<Record<BuildingType, string>> = { hq: 'hq_0', barracks: 'barracks_0', hangar: 'hangar_0', cradle: 'cradle_0', tower: 'tower_0', relay: 'relay_0', depot: 'depot_0', plant: 'plant_0' };
+
+/**
+ * Edificio como sprite: el render en color y encima la máscara de color de equipo teñida con el color del
+ * jugador. Devuelve false si el atlas no está cargado (se dibuja la versión vectorial).
+ */
+function drawBuildingArt(g: Graphics, c: Container, b: Building, selected: boolean, frame: string): boolean {
+  const tex = decorTexture(frame);
+  if (!tex) return false;
+  const team = decorTexture(`${frame}_team`);
+  let base = c.children.find((ch) => ch.label === 'art') as PixiSprite | undefined;
+  if (!base) {
+    base = new PixiSprite(tex);
+    base.label = 'art';
+    c.addChildAt(base, 1);
+    if (team) {
+      const t = new PixiSprite(team);
+      t.label = 'art-team';
+      t.tint = PLAYER_COLORS[b.owner] ?? 0xcccccc;
+      c.addChildAt(t, 2);
+    }
+  }
+  const hw = (b.size * TW) / 2;
+  const hh = (b.size * TH) / 2;
+  if (selected) g.poly([0, -hh - 4, hw + 8, 0, 0, hh + 4, -hw - 8, 0]).stroke({ width: 2, color: 0xffffff });
+  if (b.type === 'relay') {
+    // Luz de estado en lo alto de la antena: verde con red, roja sin ella.
+    let light = c.children.find((ch) => ch.label === 'art-light') as Graphics | undefined;
+    if (!light) {
+      light = new Graphics();
+      light.label = 'art-light';
+      c.addChild(light);
+    }
+    light.clear();
+    const col = b.powered ? 0x7dffb0 : 0xff4d6d;
+    const ly = -1.62 * TILE_HEIGHT_PX - 4;
+    light.circle(0, ly, 6).fill({ color: col, alpha: 0.3 });
+    light.circle(0, ly, 2.8).fill(col);
+  }
+  const label = c.children.find((ch) => ch.label === 'label');
+  if (label) label.visible = false;
+  BAR_SPEC.set(c, { y: -tex.height * (tex.defaultAnchor?.y ?? 1) - 8, w: 80 });
+  return true;
+}
+
 function drawBuilding(g: Graphics, c: Container, b: Building, selected: boolean, prog: number, train: number, gen = 1): void {
+  if (b.complete && BUILDING_ART[b.type] && drawBuildingArt(g, c, b, selected, BUILDING_ART[b.type]!)) return;
   PAL = GEN_PAL[gen] ?? GEN_PAL[1];
   const hw = (b.size * TW) / 2;
   const hh = (b.size * TH) / 2;
@@ -863,17 +1374,9 @@ function drawBuilding(g: Graphics, c: Container, b: Building, selected: boolean,
     }
   }
 
-  const label = new Text({
-    text: b.complete ? BUILDING_NAMES[b.type].toUpperCase() : `${BUILDING_NAMES[b.type].toUpperCase()} ${prog}%`,
-    style: { fontFamily: 'Menlo, monospace', fontSize: 11, fill: 0xf3e9d8, stroke: { color: 0x111111, width: 3 } },
-  });
-  label.anchor.set(0.5);
-  label.position.set(0, -h);
-  c.addChild(label);
-
-  const top = -hh - Math.max(h, full) - 16;
-  if (selected || b.hp < b.maxHp) bar(g, top, 80, b.hp / b.maxHp, hpColor(b.hp / b.maxHp));
-  if (train >= 0) bar(g, top + 7, 80, train / 100, 0xf3e9d8);
+  setLabel(c, b.complete ? BUILDING_NAMES[b.type].toUpperCase() : `${BUILDING_NAMES[b.type].toUpperCase()} ${prog}%`, -h, 11);
+  BAR_SPEC.set(c, { y: -hh - Math.max(h, full) - 16, w: 80 });
+  void train;
 }
 
 /** Torre: base baja, fuste esbelto y torreta con cañón en lo alto. */
@@ -903,15 +1406,8 @@ function drawTower(g: Graphics, c: Container, b: Building, selected: boolean, pr
   } else {
     g.moveTo(-hw * 0.3, 0).lineTo(-hw * 0.3, -full).moveTo(hw * 0.3, 0).lineTo(hw * 0.3, -full).stroke({ width: 1, color: 0xc9a44a, alpha: 0.7 });
   }
-  const label = new Text({
-    text: b.complete ? 'TORRE' : `TORRE ${prog}%`,
-    style: { fontFamily: 'Menlo, monospace', fontSize: 10, fill: 0xf3e9d8, stroke: { color: 0x111111, width: 3 } },
-  });
-  label.anchor.set(0.5);
-  label.position.set(0, hh + 8);
-  c.addChild(label);
-  const topBar = -full - 26;
-  if (selected || b.hp < b.maxHp) bar(g, topBar, 40, b.hp / b.maxHp, hpColor(b.hp / b.maxHp));
+  setLabel(c, b.complete ? 'TORRE' : `TORRE ${prog}%`, hh + 8, 10);
+  BAR_SPEC.set(c, { y: -full - 26, w: 40 });
 }
 
 /** Antena repetidora: mástil de celosía, parábola y una luz verde (con energía) o roja (sin ella). */
@@ -935,14 +1431,8 @@ function drawRelay(g: Graphics, c: Container, b: Building, selected: boolean, pr
     g.circle(0, -h - 2, 5).fill({ color: light, alpha: 0.3 });
     g.circle(0, -h - 2, 2.5).fill(light);
   }
-  const label = new Text({
-    text: b.complete ? (b.powered ? 'ANTENA' : 'ANTENA · SIN RED') : `ANTENA ${prog}%`,
-    style: { fontFamily: 'Menlo, monospace', fontSize: 9, fill: 0xf3e9d8, stroke: { color: 0x111111, width: 3 } },
-  });
-  label.anchor.set(0.5);
-  label.position.set(0, hh + 7);
-  c.addChild(label);
-  if (selected || b.hp < b.maxHp) bar(g, -full - 14, 30, b.hp / b.maxHp, hpColor(b.hp / b.maxHp));
+  setLabel(c, b.complete ? (b.powered ? 'ANTENA' : 'ANTENA · SIN RED') : `ANTENA ${prog}%`, hh + 7, 9);
+  BAR_SPEC.set(c, { y: -full - 14, w: 30 });
 }
 
 /** Central: nave baja con una torre de refrigeración y un núcleo de cristal encendido. */
@@ -968,39 +1458,54 @@ function drawPlant(g: Graphics, c: Container, b: Building, selected: boolean, pr
     g.poly([cx - 7, cy, cx, cy - 26, cx + 7, cy]).fill(0x8ff3ff).stroke({ width: 1, color: 0x2aa9c8 });
     g.poly([cx, cy - 26, cx + 7, cy, cx + 1, cy + 1]).fill(0x2aa9c8);
   }
-  const label = new Text({
-    text: b.complete ? 'CENTRAL' : `CENTRAL ${prog}%`,
-    style: { fontFamily: 'Menlo, monospace', fontSize: 11, fill: 0xf3e9d8, stroke: { color: 0x111111, width: 3 } },
-  });
-  label.anchor.set(0.5);
-  label.position.set(0, hh + 10);
-  c.addChild(label);
-  if (selected || b.hp < b.maxHp) bar(g, -hh - full - 16, 60, b.hp / b.maxHp, hpColor(b.hp / b.maxHp));
+  setLabel(c, b.complete ? 'CENTRAL' : `CENTRAL ${prog}%`, hh + 10, 11);
+  BAR_SPEC.set(c, { y: -hh - full - 16, w: 60 });
 }
 
-function drawUnit(g: Graphics, u: Unit, selected: boolean, power = ''): void {
-  const color = PLAYER_COLORS[u.owner] ?? 0xcccccc;
-  const box = UNIT_BOX[u.type];
-  const ring = (u.radius * TW) / (SUB * Math.SQRT2) + 3;
-  g.ellipse(0, 0, ring - 1, (ring - 1) / 2).fill({ color: 0x000000, alpha: 0.3 });
-  if (selected) g.ellipse(0, 0, ring + 2, (ring + 2) / 2).stroke({ width: 2, color: 0xffffff });
+/** Estado visual de una unidad, lo que decide su textura (no su posición ni su vida). */
+interface BodyState {
+  type: UnitType;
+  color: number;
+  carry: boolean;
+  deployState: number;
+  nodePowered: boolean;
+  /** Luz de energía: '' (no depende de la red), 'on', 'out' u 'off'. */
+  light: string;
+}
 
+/** Dibuja el cuerpo de una unidad (sin sombra, anillo ni barras): se hornea una vez en una textura. */
+function drawUnitBody(g: Graphics, u: BodyState): void {
+  const color = u.color;
+  const box = UNIT_BOX[u.type];
   switch (u.type) {
-    case 'worker':
-      g.moveTo(-1.5, 0).lineTo(-1.5, -6).moveTo(1.5, 0).lineTo(1.5, -6).stroke({ width: 1.5, color: 0x3a3a3a });
-      g.rect(-3, -13, 6, 7).fill(0xe8913a);
-      g.rect(-3, -9, 6, 2).fill(color);
-      g.circle(0, -15, 2.2).fill(0xe0c09a);
-      g.rect(-2.8, -17.5, 5.6, 2).fill(0xf5c542);
-      if (u.carry > 0) g.rect(3, -11, 5, 4).fill(0x8d9aab).stroke({ width: 1, color: 0x3a3f47 });
+    case 'worker': {
+      // Obrero: bajo y robusto, overol del color de su jugador con bandas reflectantes, casco amarillo y pico al hombro.
+      const overall = mix(color, 0xffffff, 0.2);
+      g.moveTo(-1.6, 0).lineTo(-1.6, -6).moveTo(1.6, 0).lineTo(1.6, -6).stroke({ width: 2, color: mix(color, 0x000000, 0.35) });
+      g.rect(-3.4, -13, 6.8, 7.5).fill(overall).stroke({ width: 1, color: 0x1a1a1a });
+      g.rect(-3.4, -11, 6.8, 1).fill(0xf8f4e0);
+      g.rect(-3.4, -8.5, 6.8, 1).fill(0xf8f4e0);
+      g.circle(0, -14.8, 2.2).fill(0xe0c09a);
+      g.ellipse(0, -16.4, 3.4, 2).fill(0xfacc15).stroke({ width: 0.8, color: 0x7a5a00 });
+      g.rect(-3.8, -16.2, 7.6, 0.9).fill(0xfacc15);
+      // Pico al hombro
+      g.moveTo(2, -12).lineTo(-4, -19).stroke({ width: 1.2, color: 0x7c4a1e });
+      g.moveTo(-6.5, -17.5).quadraticCurveTo(-4.5, -20.5, -1.5, -20).stroke({ width: 1.4, color: 0x9ca3af });
+      if (u.carry) g.rect(3, -11, 5, 4).fill(0x8d9aab).stroke({ width: 1, color: 0x3a3f47 });
       break;
-    case 'soldier':
+    }
+    case 'soldier': {
+      // Soldado: más alto y delgado, uniforme oliva con el torso del color de su jugador, casco y mochila oliva, rifle largo.
+      const olive = 0x4b5a36;
       g.moveTo(-1.5, 0).lineTo(-1.5, -8).moveTo(1.5, 0).lineTo(1.5, -8).stroke({ width: 1.5, color: 0x2e3326 });
-      g.rect(-2.8, -16, 5.6, 8).fill(color).stroke({ width: 1, color: 0x111111 });
+      g.rect(-4.2, -16, 2.2, 6).fill(olive);
+      g.rect(-2.8, -16, 5.6, 8).fill(mix(color, 0x000000, 0.15)).stroke({ width: 1, color: 0x111111 });
+      g.moveTo(-2.4, -16).lineTo(2.4, -9).stroke({ width: 1, color: olive });
       g.circle(0, -18.5, 2.2).fill(0xe0c09a);
-      g.rect(-2.8, -21, 5.6, 2).fill(0x4b5a36);
-      g.moveTo(-3, -9).lineTo(6, -17).stroke({ width: 1.5, color: 0x222222 });
+      g.ellipse(0, -20.2, 3, 1.8).fill(olive).stroke({ width: 0.8, color: 0x2e3326 });
+      g.moveTo(-3, -9).lineTo(7, -18).stroke({ width: 1.6, color: 0x1a1a1a });
       break;
+    }
     case 'mech':
       drawMech(g, color);
       break;
@@ -1018,12 +1523,10 @@ function drawUnit(g: Graphics, u: Unit, selected: boolean, power = ''): void {
       break;
   }
 
-  if (selected || u.hp < u.maxHp) bar(g, -box.h - 8, Math.max(20, box.w + 10), u.hp / u.maxHp, hpColor(u.hp / u.maxHp));
-  if (power) {
-    // Luz de estado sobre la cabeza y, fuera de la red o recargando, la batería.
-    const light = power === 'on' || power === 'charge' ? 0x7dffb0 : power === 'out' ? 0xff4d6d : 0x555555;
+  if (u.light) {
+    // Luz de estado sobre la cabeza: verde conectada, roja fuera de la red, gris apagada.
+    const light = u.light === 'on' ? 0x7dffb0 : u.light === 'out' ? 0xff4d6d : 0x555555;
     g.circle(box.w / 2 + 3, -box.h + 4, 3).fill(light).stroke({ width: 1, color: 0x111111 });
-    if (power === 'out' || power === 'charge') bar(g, -box.h - 14, Math.max(20, box.w + 10), u.battery / BATTERY_TICKS, power === 'out' ? 0xff8a3c : 0x7dffb0);
   }
 }
 
@@ -1051,29 +1554,49 @@ function drawMech(g: Graphics, color: number): void {
   g.moveTo(-1, -71).lineTo(-6, -80).moveTo(1, -71).lineTo(6, -80).stroke({ width: 1.2, color: color });
 }
 
-/** Camión repetidor: seis ruedas y un mástil plegado; desplegado, apoya las patas y alza la antena. */
+/**
+ * Camión repetidor. En marcha: caja cerrada con el mástil plegado. Desplegado: se reconoce de lejos por
+ * las patas apoyadas con zapatas, las franjas de aviso, el mástil de celosía alto, la parábola grande y
+ * la baliza con el color del jugador (verde o rojo arriba según tenga enlace).
+ */
 function drawTruck(g: Graphics, color: number, state: number, powered: boolean): void {
   const frame = 0x23202b;
   const body = 0xb9b2a4;
   if (state !== 0) {
-    // Estabilizadores
-    for (const [x, y] of [[-18, 2], [18, 2], [-14, -8], [14, -8]]) g.moveTo(x * 0.6, y - 6).lineTo(x, y).stroke({ width: 2, color: frame });
+    // Estabilizadores con zapatas
+    for (const [x, y] of [[-24, 4], [24, 4], [-18, -10], [18, -10]]) {
+      g.moveTo(x * 0.5, y - 8).lineTo(x, y).stroke({ width: 2.5, color: frame });
+      if (state === 2) g.ellipse(x, y, 4, 2).fill(0x5b5f6a).stroke({ width: 1, color: frame });
+    }
   }
   for (const x of [-11, -3, 9]) g.ellipse(x, 0, 4, 2.5).fill(frame);
   g.poly([-16, -3, 12, -3, 16, -8, 16, -16, -16, -16]).fill(body).stroke({ width: 1, color: frame });
   g.poly([8, -16, 16, -16, 16, -24, 10, -24]).fill(0x8a8494).stroke({ width: 1, color: frame });
   g.rect(10, -22, 5, 3).fill(0x7dd3fc);
-  g.rect(-14, -12, 20, 3).fill(color);
   if (state === 2) {
-    // Mástil desplegado con parábola y luz de estado
-    g.moveTo(-6, -16).lineTo(-4, -52).stroke({ width: 2.5, color: frame });
-    g.ellipse(2, -46, 6, 8).fill(0xd8d2c4).stroke({ width: 1, color: frame });
+    // Franjas de aviso amarillas y negras en la caja
+    for (let i = 0; i < 7; i++) g.poly([-15 + i * 4, -4, -13 + i * 4, -4, -9 + i * 4, -15, -11 + i * 4, -15]).fill(i % 2 ? frame : 0xf2c14e);
+    g.rect(-14, -12, 20, 3).fill(color);
+    // Mástil de celosía alto
+    g.moveTo(-9, -16).lineTo(-5, -70).moveTo(-1, -16).lineTo(-5, -70).stroke({ width: 1.8, color: frame });
+    for (let y = -24; y > -66; y -= 8) {
+      const k = (y + 16) / -54;
+      g.moveTo(-9 + 4 * k, y).lineTo(-1 - 4 * k, y - 4).stroke({ width: 1, color: frame });
+    }
+    // Parábola grande orientada hacia fuera
+    g.ellipse(6, -60, 9, 12).fill(0xe9e4d8).stroke({ width: 1.2, color: frame });
+    g.ellipse(7, -60, 5, 8).fill({ color: 0xb9b2a4, alpha: 0.7 });
+    g.moveTo(6, -60).lineTo(14, -62).stroke({ width: 1.2, color: frame });
+    // Banderín del jugador y baliza de estado
+    g.poly([-5, -70, 7, -74, -5, -78]).fill(color).stroke({ width: 1, color: frame });
     const light = powered ? 0x7dffb0 : 0xff4d6d;
-    g.circle(-4, -55, 5).fill({ color: light, alpha: 0.3 });
-    g.circle(-4, -55, 2.5).fill(light);
+    g.circle(-5, -82, 7).fill({ color: light, alpha: 0.25 });
+    g.circle(-5, -82, 3).fill(light);
   } else if (state === 1) {
-    g.moveTo(-6, -16).lineTo(2, -38).stroke({ width: 2.5, color: frame });
+    g.rect(-14, -12, 20, 3).fill(color);
+    g.moveTo(-6, -16).lineTo(2, -40).stroke({ width: 2.5, color: frame });
   } else {
+    g.rect(-14, -12, 20, 3).fill(color);
     // Mástil plegado sobre la caja
     g.moveTo(-15, -18).lineTo(7, -18).stroke({ width: 2.5, color: frame });
     g.ellipse(-12, -20, 4, 2).fill(0xd8d2c4);
@@ -1151,3 +1674,7 @@ function drawColossus(g: Graphics, color: number): void {
   g.ellipse(0, -162, 4, 7).fill(bone).stroke({ width: 1, color: shade });
   g.ellipse(0, -171, 17, 4.5).stroke({ width: 2.5, color });
 }
+
+export { loadTerrainTextures } from './terrain';
+export { loadDecor } from './decor';
+export { loadUnitArt, prewarmTextures } from './units';

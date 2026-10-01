@@ -66,10 +66,22 @@ export function batteryMax(st: State, player: number): number {
   return hasTech(st, player, 'lithium') ? 400 : BATTERY_TICKS;
 }
 
-/** Radio de cobertura de un nodo de la red (Amplificadores: antenas y camiones de 6 a 8). */
+/**
+ * Radio de cobertura de un nodo de la red. Antenas y camiones crecen con cada generación (6, 8, 10) y
+ * Amplificadores suma 2 más encima.
+ */
 export function coverOf(st: State, player: number, base: number, isRelay: boolean): number {
-  return isRelay && hasTech(st, player, 'amplifiers') ? base + 2 : base;
+  if (!isRelay) return base;
+  return base + 2 * (st.players[player].gen - 1) + (hasTech(st, player, 'amplifiers') ? 2 : 0);
 }
+
+/** Alcance de enlace de un nodo: el de antenas y camiones también crece con cada generación (8, 10, 12). */
+export function linkOf(st: State, player: number, base: number, isRelay: boolean): number {
+  return isRelay ? base + 2 * (st.players[player].gen - 1) : base;
+}
+
+/** Vida de una antena según la generación de su dueño. */
+export const RELAY_HP = [0, 250, 450, 700];
 
 /** Daño de una torre (Munición perforante: +50 %). */
 export function towerDamage(st: State, player: number, base: number): number {

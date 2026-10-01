@@ -58,8 +58,8 @@ export const BATTERY_RECHARGE = 4;
 
 export const UNITS: Record<UnitType, UnitStats> = {
   worker: { maxHp: 40, speed: 12, radius: 40, damage: 3, splash: 0, range: 20, sight: 5 * SUB, cooldown: 30, cost: 50, pop: 1, trainTime: 240, autoAttack: false, vsBuilding: 3, projectile: false, needsPower: false },
-  soldier: { maxHp: 45, speed: 13, radius: 40, damage: 5, splash: 0, range: 4 * SUB, sight: 7 * SUB, cooldown: 25, cost: 60, pop: 1, trainTime: 200, autoAttack: true, vsBuilding: 5, projectile: false, needsPower: false },
-  mech: { maxHp: 450, speed: 11, radius: 110, damage: 30, splash: 160, range: 6 * SUB, sight: 9 * SUB, cooldown: 40, cost: 400, pop: 5, trainTime: 600, autoAttack: true, vsBuilding: 30, projectile: false, needsPower: true },
+  soldier: { maxHp: 80, speed: 13, radius: 56, damage: 8, splash: 0, range: 5 * SUB, sight: 7 * SUB, cooldown: 25, cost: 60, pop: 1, trainTime: 200, autoAttack: true, vsBuilding: 5, projectile: false, needsPower: false },
+  mech: { maxHp: 450, speed: 11, radius: 110, damage: 30, splash: 110, range: 6 * SUB, sight: 9 * SUB, cooldown: 40, cost: 400, pop: 5, trainTime: 600, autoAttack: true, vsBuilding: 30, projectile: false, needsPower: true },
   // Camión repetidor (Gen-2): desarmado; desplegado funciona como una antena móvil.
   truck: { maxHp: 400, speed: 10, radius: 90, damage: 0, splash: 0, range: 0, sight: 7 * SUB, cooldown: 30, cost: 150, pop: 3, trainTime: 400, autoAttack: false, vsBuilding: 0, projectile: false, needsPower: false },
   // Los colosos (Gen-3) llevan reactor propio: no necesitan la red, pero estallan al morir.

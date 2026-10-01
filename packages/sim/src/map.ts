@@ -51,8 +51,10 @@ export function generateMap(rng: Rng, w: number, h: number, clear: readonly Clea
       }
     }
   };
-  blobs(WATER, 5, 3, 6);
-  blobs(ROCK, 14, 1, 3);
+  // La cantidad de lagos y rocas crece con el área (en el mapa de 120×120 son 5 y 14).
+  const area = (w * h) / (120 * 120);
+  blobs(WATER, Math.trunc(5 * area), 3, 6);
+  blobs(ROCK, Math.trunc(14 * area), 1, 3);
 
   for (const z of clear) {
     for (let dy = -z.r; dy <= z.r; dy++) {

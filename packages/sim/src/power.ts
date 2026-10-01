@@ -2,7 +2,7 @@ import { BUILDINGS, buildingCenter, canPlace, type BuildingType } from './buildi
 import { SUB } from './constants';
 import { isqrt } from './math';
 import type { State } from './state';
-import { coverOf } from './tech';
+import { coverOf, linkOf } from './tech';
 
 /**
  * Red de energía. Las centrales (sobre una veta) son las fuentes; una antena recibe energía si enlaza,
@@ -28,7 +28,7 @@ export function powerNodes(st: State, p: number): PowerNode[] {
     const pw = BUILDINGS[b.type].power;
     if (b.owner !== p || b.hp <= 0 || !pw) continue;
     const c = buildingCenter(b);
-    out.push({ x: c.x, y: c.y, cover: coverOf(st, p, pw.cover, b.type === 'relay'), link: pw.link, source: pw.source, complete: b.complete, powered: false, setPowered: (v) => (b.powered = v) });
+    out.push({ x: c.x, y: c.y, cover: coverOf(st, p, pw.cover, b.type === 'relay'), link: linkOf(st, p, pw.link, b.type === 'relay'), source: pw.source, complete: b.complete, powered: false, setPowered: (v) => (b.powered = v) });
   }
   const relay = BUILDINGS.relay.power!;
   for (const u of st.units) {
@@ -37,7 +37,7 @@ export function powerNodes(st: State, p: number): PowerNode[] {
       u.nodePowered = false;
       continue;
     }
-    out.push({ x: u.x, y: u.y, cover: coverOf(st, p, relay.cover, true), link: relay.link, source: false, complete: true, powered: false, setPowered: (v) => (u.nodePowered = v) });
+    out.push({ x: u.x, y: u.y, cover: coverOf(st, p, relay.cover, true), link: linkOf(st, p, relay.link, true), source: false, complete: true, powered: false, setPowered: (v) => (u.nodePowered = v) });
   }
   return out;
 }
@@ -90,11 +90,25 @@ function sameMask(a: Uint8Array, b: Uint8Array): boolean {
   return true;
 }
 
+/** Bits de la red de todo el equipo de un jugador: las unidades se alimentan también de la red aliada. */
+export function teamPowerMask(st: State, player: number): number {
+  const team = st.players[player].team;
+  let m = 0;
+  st.players.forEach((pl, q) => {
+    if (pl.team === team) m |= 1 << q;
+  });
+  return m;
+}
+
+/**
+ * ¿Tiene energía este punto para las unidades de `player`? Cuenta la red propia y la de sus aliados
+ * (las redes no se encadenan entre aliados, pero la cobertura se comparte).
+ */
 export function isPowered(st: State, player: number, x: number, y: number): boolean {
   const tx = Math.floor(x / SUB);
   const ty = Math.floor(y / SUB);
   if (tx < 0 || ty < 0 || tx >= st.map.w || ty >= st.map.h) return false;
-  return (st.power[ty * st.map.w + tx] & (1 << player)) !== 0;
+  return (st.power[ty * st.map.w + tx] & teamPowerMask(st, player)) !== 0;
 }
 
 /** Centro de la casilla con energía más cercana a (x, y) en un radio, o null. */
@@ -102,7 +116,7 @@ export function nearestPoweredTile(st: State, player: number, x: number, y: numb
   const { w, h } = st.map;
   const cx = Math.floor(x / SUB);
   const cy = Math.floor(y / SUB);
-  const bit = 1 << player;
+  const bit = teamPowerMask(st, player);
   for (let r = 1; r <= maxR; r++) {
     let best: { x: number; y: number } | null = null;
     let bestD = Infinity;
