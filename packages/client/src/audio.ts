@@ -1,6 +1,6 @@
 /**
- * Efectos de sonido sintetizados con Web Audio: no hay archivos, cada sonido se arma con osciladores
- * y ruido filtrado. Son provisionales, igual que las siluetas; más adelante se reemplazan por audio real.
+ * Efectos de sonido: grabados con ElevenLabs (art/audio_gen.py, `efectos`) cuando están cargados; si no
+ * (o mientras cargan), sintetizados con osciladores y ruido filtrado.
  */
 export type SoundName =
   | 'shotSoldier'
@@ -53,12 +53,35 @@ const THROTTLE: Partial<Record<SoundName, number>> = {
   ackAttack: 60,
 };
 
+/** Volumen relativo de los efectos grabados (los de batalla, más bajos: suenan muchas veces a la vez). */
+const SAMPLE_GAIN: Partial<Record<SoundName, number>> = {
+  shotSoldier: 0.45,
+  hit: 0.45,
+  gather: 0.5,
+  shotMech: 0.6,
+  shotTower: 0.6,
+  ack: 0.5,
+  ackAttack: 0.5,
+  repair: 0.5,
+  deliver: 0.6,
+  death: 0.6,
+  victory: 1.1,
+  defeat: 1.1,
+};
+
 export class Sfx {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noiseBuf: AudioBuffer | null = null;
   private readonly last = new Map<SoundName, number>();
   muted = false;
+  /** Busca el efecto grabado de un sonido (lo provee Voices cuando termina de cargar los audios). */
+  samples?: (name: SoundName) => AudioBuffer | null;
+
+  /** El AudioContext (existe tras el primer gesto del usuario). */
+  get context(): AudioContext | null {
+    return this.ctx;
+  }
 
   /** Los navegadores solo permiten audio tras un gesto del usuario: llamar desde un clic o tecla. */
   unlock(): void {
@@ -90,6 +113,17 @@ export class Sfx {
     g.gain.value = vol;
     out.connect(g).connect(this.master);
     const t = ctx.currentTime;
+    // Efecto grabado (ElevenLabs) si está cargado, con una leve variación de tono para que no se repita igual.
+    const sample = this.samples?.(name);
+    if (sample) {
+      const src = ctx.createBufferSource();
+      src.buffer = sample;
+      src.playbackRate.value = 0.93 + Math.random() * 0.14;
+      g.gain.value = vol * (SAMPLE_GAIN[name] ?? 0.9);
+      src.connect(out);
+      src.start(t);
+      return;
+    }
     const tone = (f0: number, f1: number, type: OscillatorType, start: number, dur: number, gain: number) => {
       const o = ctx.createOscillator();
       const e = ctx.createGain();
@@ -249,5 +283,141 @@ export class Sfx {
         [392, 349, 311, 262].forEach((f, i) => tone(f, f * (i === 3 ? 0.97 : 1), 'sawtooth', i * 0.28, i === 3 ? 1.4 : 0.35, 0.1));
         break;
     }
+  }
+}
+
+/**
+ * Voces de las unidades, avisos de la base y música ambiente (generados con ElevenLabs: art/audio_gen.py).
+ * Una sola voz de unidad a la vez (la nueva corta a la anterior, como en AoE2); los avisos van por su
+ * propio canal y cada uno tiene un tiempo mínimo entre repeticiones.
+ */
+export class Voices {
+  private ctx: AudioContext | null = null;
+  private out: GainNode | null = null;
+  private musicGain: GainNode | null = null;
+  private manifest: Record<string, Record<string, string[]> | string[]> = {};
+  private readonly buffers = new Map<string, AudioBuffer>();
+  private unitVoice: AudioBufferSourceNode | null = null;
+  private announcerBusy = 0;
+  private readonly lastCat = new Map<string, number>();
+  private readonly turn = new Map<string, number>();
+  private musicStarted = false;
+  muted = false;
+
+  /** Carga el índice y decodifica los audios (tras el primer gesto del usuario, que crea el AudioContext). */
+  async init(ctx: AudioContext, dest: AudioNode): Promise<void> {
+    if (this.ctx) return;
+    this.ctx = ctx;
+    this.out = ctx.createGain();
+    this.out.gain.value = 1.4;
+    this.out.connect(dest);
+    this.musicGain = ctx.createGain();
+    this.musicGain.gain.value = 0.32;
+    this.musicGain.connect(dest);
+    try {
+      this.manifest = await (await fetch('audio/manifest.json')).json();
+    } catch {
+      return;
+    }
+    const names = Object.values(this.manifest).flatMap((v) => (Array.isArray(v) ? v : Object.values(v).flat()));
+    await Promise.all(
+      names.map(async (n) => {
+        try {
+          const data = await (await fetch(`audio/${n}.mp3`)).arrayBuffer();
+          this.buffers.set(n, await ctx.decodeAudioData(data));
+        } catch {
+          /* sin ese audio */
+        }
+      }),
+    );
+    this.startMusic();
+  }
+
+  setMuted(m: boolean): void {
+    this.muted = m;
+    if (this.musicGain && this.ctx) this.musicGain.gain.setTargetAtTime(m ? 0 : 0.32, this.ctx.currentTime, 0.3);
+  }
+
+  /** Efecto grabado del juego por nombre (`sfx` del manifest), o null. */
+  effect(name: string): AudioBuffer | null {
+    const group = this.manifest.sfx;
+    const file = group && !Array.isArray(group) ? group[name]?.[0] : undefined;
+    return file ? (this.buffers.get(file) ?? null) : null;
+  }
+
+  private pick(unit: string, cat: string): AudioBuffer | null {
+    const group = this.manifest[unit];
+    const list = group && !Array.isArray(group) ? group[cat] : undefined;
+    if (!list?.length) return null;
+    const key = `${unit}.${cat}`;
+    const i = this.turn.get(key) ?? Math.floor(Math.random() * list.length);
+    this.turn.set(key, (i + 1) % list.length);
+    return this.buffers.get(list[i]) ?? null;
+  }
+
+  private play(buf: AudioBuffer, vol = 1): AudioBufferSourceNode | null {
+    if (!this.ctx || !this.out) return null;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const g = this.ctx.createGain();
+    g.gain.value = vol;
+    src.connect(g).connect(this.out);
+    src.start();
+    return src;
+  }
+
+  /** Respuesta de una unidad propia (seleccionar, mover, atacar...). `gap` evita repetirla en ráfaga. */
+  unit(unit: string, cat: string, gap = 350): void {
+    if (this.muted || !this.ctx) return;
+    const now = performance.now();
+    if (now - (this.lastCat.get('unit') ?? 0) < gap) return;
+    const buf = this.pick(unit, cat);
+    if (!buf) return;
+    this.lastCat.set('unit', now);
+    try {
+      this.unitVoice?.stop();
+    } catch {
+      /* ya terminó */
+    }
+    this.unitVoice = this.play(buf);
+  }
+
+  /** Aviso de la voz de mando. `gap` (ms) es el tiempo mínimo entre dos avisos de ese tipo. */
+  announce(cat: string, gap = 8000): void {
+    if (this.muted || !this.ctx) return;
+    const now = performance.now();
+    if (now - (this.lastCat.get(cat) ?? -1e9) < gap || now < this.announcerBusy) return;
+    const buf = this.pick('announcer', cat);
+    if (!buf) return;
+    this.lastCat.set(cat, now);
+    this.announcerBusy = now + buf.duration * 1000;
+    this.play(buf, 0.9);
+  }
+
+  /** Música: alterna los bucles de ambiente (cada uno suena dos vueltas) con un fundido entre ellos. */
+  private startMusic(): void {
+    const tracks = (Array.isArray(this.manifest.music) ? this.manifest.music : []).map((n) => this.buffers.get(n)).filter((b): b is AudioBuffer => !!b);
+    if (!tracks.length || this.musicStarted || !this.ctx || !this.musicGain) return;
+    this.musicStarted = true;
+    let i = 0;
+    const next = () => {
+      const ctx = this.ctx!;
+      const buf = tracks[i++ % tracks.length];
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      const g = ctx.createGain();
+      const t = ctx.currentTime;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(1, t + 3);
+      const dur = buf.duration * 2;
+      g.gain.setValueAtTime(1, t + dur - 3);
+      g.gain.linearRampToValueAtTime(0, t + dur);
+      src.connect(g).connect(this.musicGain!);
+      src.start(t);
+      src.stop(t + dur + 0.1);
+      setTimeout(next, (dur - 3) * 1000);
+    };
+    next();
   }
 }

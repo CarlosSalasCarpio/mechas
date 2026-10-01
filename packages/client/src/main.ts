@@ -32,7 +32,7 @@ import {
   linkOf,
 } from '@epocas/sim';
 import { assignPlayerColors, BUILDING_NAMES, GameView, isoX, isoY, loadDecor, loadTerrainTextures, loadUnitArt, prewarmTextures, screenToWorld, UNIT_BOX, type Pos } from '@epocas/render';
-import { Sfx } from './audio';
+import { Sfx, Voices } from './audio';
 import { Minimap } from './minimap';
 
 const PLAYER = 0;
@@ -95,8 +95,33 @@ centerOn((myHq.tx + 6) * SUB, (myHq.ty + 2) * SUB);
 
 const sfx = new Sfx();
 // El audio del navegador solo arranca tras un gesto del usuario.
-addEventListener('pointerdown', () => sfx.unlock(), { capture: true });
-addEventListener('keydown', () => sfx.unlock(), { capture: true });
+const voices = new Voices();
+(window as unknown as { __voices: Voices }).__voices = voices;
+sfx.samples = (name) => voices.effect(name);
+const unlockAudio = () => {
+  sfx.unlock();
+  if (sfx.context) void voices.init(sfx.context, sfx.context.destination);
+};
+addEventListener('pointerdown', unlockAudio, { capture: true });
+addEventListener('keydown', unlockAudio, { capture: true });
+
+/** Qué unidad "habla" por una selección: la más importante de las propias. */
+const VOICE_ORDER: UnitType[] = ['colossus', 'siege', 'mech', 'artillery', 'truck', 'soldier', 'worker'];
+function speaker(ids: Iterable<number>): UnitType | null {
+  let best: UnitType | null = null;
+  for (const id of ids) {
+    const u = st.byId.get(id);
+    if (!u || u.owner !== PLAYER) continue;
+    if (best === null || VOICE_ORDER.indexOf(u.type) < VOICE_ORDER.indexOf(best)) best = u.type;
+  }
+  return best;
+}
+/** Respuesta hablada de la selección a una orden. */
+function ackVoice(cat: 'select' | 'move' | 'attack'): void {
+  const t = speaker(selected);
+  if (!t) return;
+  voices.unit(t, t === 'worker' && cat === 'attack' ? 'move' : cat);
+}
 
 const keys = new Set<string>();
 addEventListener('keydown', (e) => {
@@ -209,6 +234,7 @@ function attackMove(x: number, y: number, queued = false): void {
   pending.push({ tick: st.tick, player: PLAYER, kind: 'amove', units: ids, x, y, queued });
   view.flash(x, y, 0xef4444);
   sfx.play('ackAttack');
+  ackVoice('attack');
 }
 
 function worldAt(px: number, py: number): Pos {
@@ -353,6 +379,7 @@ app.canvas.addEventListener('pointerdown', (e) => {
       pending.push({ tick: st.tick, player: PLAYER, kind: 'attack', units: ids, target: intent.target });
       view.flash(x, y, 0xef4444);
       sfx.play('ackAttack');
+      ackVoice('attack');
       return;
     case 'gather':
     case 'construct':
@@ -361,11 +388,13 @@ app.canvas.addEventListener('pointerdown', (e) => {
       if (others.length) pending.push({ tick: st.tick, player: PLAYER, kind: 'move', units: others, x, y, queued: e.shiftKey });
       view.flash(x, y, 0xfacc15);
       sfx.play('ack');
+      voices.unit('worker', intent.kind === 'gather' ? 'gather' : 'build');
       return;
     case 'none':
       pending.push({ tick: st.tick, player: PLAYER, kind: 'move', units: ids, x, y, queued: e.shiftKey });
       view.flash(x, y, 0x86efac);
       sfx.play('ack');
+      ackVoice('move');
   }
 });
 
@@ -376,12 +405,18 @@ function playFx(): void {
   const h = app.screen.height;
   for (const f of st.fx) {
     const mine = f.owner === PLAYER;
+    if (f.kind === 'shot' && !mine && hostile(st, f.owner, PLAYER)) {
+      const victim = st.byId.get(f.target) ?? st.buildingsById.get(f.target);
+      if (victim?.owner === PLAYER) voices.announce('attacked', 25000);
+    }
     if (f.kind === 'built' && mine) {
       sfx.play('built');
+      voices.announce('built', 3000);
       continue;
     }
     if (f.kind === 'powerLost' && mine) {
       sfx.play('warning');
+      voices.announce('powerlost', 20000);
       continue;
     }
     if (f.kind === 'shutdown' && mine) {
@@ -394,6 +429,8 @@ function playFx(): void {
     }
     if (f.kind === 'trained' && mine) {
       sfx.play('trained');
+      if (f.utype === 'colossus' || f.utype === 'siege') voices.announce('colossus', 0);
+      else voices.announce('trained', 12000);
       continue;
     }
     const p = world.toGlobal({ x: isoX(f.x, f.y), y: isoY(f.x, f.y) });
@@ -668,6 +705,7 @@ function currentActions(): Action[] {
       run: () => {
         pending.push({ tick: st.tick, player: PLAYER, kind: 'deploy', units: trucks.map((u) => u.id), on: anyMobile });
         sfx.play('ack');
+        voices.unit('truck', anyMobile ? 'deploy' : 'undeploy', 0);
       },
     });
   } else if (selectedMilitary().length > 0) {
@@ -876,6 +914,8 @@ function renderPanel(): void {
   }
 }
 
+let lastSel = new Set<number>();
+const reactorWarned = new Set<number>();
 setInterval(() => {
   $('metal').textContent = String(st.players[PLAYER].metal);
   $('pop').textContent = `${popUsed(st, PLAYER)} / ${st.players[PLAYER].popCap}`;
@@ -884,14 +924,27 @@ setInterval(() => {
   (window as unknown as { __perf: object }).__perf = { fps: app.ticker.FPS, simMs, renderMs, units: st.units.length, tick: st.tick };
   renderPanel();
 
+  // Voz al seleccionar: solo cuando entra alguna unidad nueva en la selección (no cuando muere una).
+  const selNow = [...selected].filter((id) => st.byId.get(id)?.owner === PLAYER);
+  if (selNow.some((id) => !lastSel.has(id))) ackVoice('select');
+  lastSel = new Set(selNow);
+  // Reactor crítico: un coloso propio con poca vida (una vez por coloso).
+  for (const u of st.units) {
+    if (u.owner === PLAYER && u.type === 'colossus' && u.hp < u.maxHp / 4 && !reactorWarned.has(u.id)) {
+      reactorWarned.add(u.id);
+      voices.announce('reactor', 0);
+    }
+  }
   const last = st.events[st.events.length - 1];
   if (last && last !== lastEvent) {
     if (last.kind === 'generation') {
       alertBox.textContent = last.player === PLAYER ? `Has alcanzado la GEN-${last.gen} · ${GEN_NAMES[last.gen]}` : `${who(last.player)} ha alcanzado la GEN-${last.gen} · ${GEN_NAMES[last.gen]}`;
       sfx.play(last.player === PLAYER ? 'genUp' : 'alert');
+      if (last.player === PLAYER) voices.announce('generation', 0);
     } else {
       alertBox.textContent = last.player === PLAYER ? 'Tu Cuna ha empezado a construir un COLOSO' : hostile(st, last.player, PLAYER) ? `ALERTA · ${who(last.player)} está construyendo un COLOSO` : `${who(last.player)} está construyendo un COLOSO`;
       sfx.play('alert');
+      if (hostile(st, last.player, PLAYER)) voices.announce('enemycolossus', 0);
     }
     alertBox.style.display = 'block';
     alertUntil = performance.now() + 6000;
@@ -975,11 +1028,13 @@ setInterval(() => {
   $('endText').textContent = won ? 'VICTORIA' : 'DERROTA';
   end.style.display = 'flex';
   sfx.play(won ? 'victory' : 'defeat');
+  voices.announce(won ? 'victory' : 'defeat', 0);
 }, 500);
 
 const muteBtn = $('mute');
 muteBtn.addEventListener('click', () => {
   sfx.muted = !sfx.muted;
+  voices.setMuted(sfx.muted);
   muteBtn.textContent = sfx.muted ? 'Sonido: no' : 'Sonido: sí';
   muteBtn.blur();
 });
@@ -1037,6 +1092,7 @@ minimap.canvas.addEventListener('pointerdown', (e) => {
       pending.push({ tick: st.tick, player: PLAYER, kind: 'move', units: ids, x: w.x, y: w.y });
       view.flash(w.x, w.y, 0x86efac);
       sfx.play('ack');
+      ackVoice('move');
     }
   }
 });

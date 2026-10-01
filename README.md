@@ -46,3 +46,13 @@ python3 art/pack_atlas.py                           # → packages/client/public
 **Edificios** (`art/render_buildings.py`): modelados por código a partir de un concepto (`art/concepts/`), con texturas CC0 de pintura, chapa y óxido (`art/textures/`). Cada edificio sale en dos sprites: el render en color y una máscara de las zonas de color de equipo, que el juego tiñe con el color de cada jugador. Hechos todos: cuartel general, barracas, hangar, cuna, torre, antena, depósito y central.
 
 **Unidades** (`art/render_units.py`, `packages/render/src/units.ts`): modeladas por piezas rígidas con articulaciones y animadas por código (reposo, caminar, disparar o trabajar; el camión usa esos fotogramas para desplegarse) en 8 direcciones, con máscara de color de equipo. Se empaquetan a escala 1 del juego para no agotar la memoria de vídeo (`python3 art/pack_atlas.py units/<tipo> <tipo> 2048 2 1`; los colosos con `THIN=1` y escala de render 1,4).
+
+## Voces y sonido
+
+Voces de las unidades, avisos de la voz de mando, sonidos de los colosos y ambiente musical, generados con **ElevenLabs** (`art/audio_gen.py`; los textos y la voz de cada personaje están en ese archivo). La clave va en `.env` (`ELEVENLABS_API_KEY=...`, fuera de git).
+
+```sh
+python3 art/audio_gen.py voces sfx efectos ambiente   # → packages/client/public/audio/ + manifest.json
+```
+
+Con el plan gratuito, la API de música no está disponible: la música son dos bucles de ambiente hechos con la API de efectos (`ambiente`). Con un plan de pago, `musica` genera una pieza completa. Licencia: el plan gratuito exige atribución y no permite uso comercial.

@@ -1,0 +1,240 @@
+{
+ "soldier": {
+  "select": [
+   "vo_soldier_select_0",
+   "vo_soldier_select_1",
+   "vo_soldier_select_2",
+   "vo_soldier_select_3"
+  ],
+  "move": [
+   "vo_soldier_move_0",
+   "vo_soldier_move_1",
+   "vo_soldier_move_2"
+  ],
+  "attack": [
+   "vo_soldier_attack_0",
+   "vo_soldier_attack_1",
+   "vo_soldier_attack_2"
+  ]
+ },
+ "worker": {
+  "select": [
+   "vo_worker_select_0",
+   "vo_worker_select_1",
+   "vo_worker_select_2"
+  ],
+  "move": [
+   "vo_worker_move_0",
+   "vo_worker_move_1"
+  ],
+  "build": [
+   "vo_worker_build_0",
+   "vo_worker_build_1",
+   "vo_worker_build_2"
+  ],
+  "gather": [
+   "vo_worker_gather_0",
+   "vo_worker_gather_1"
+  ]
+ },
+ "mech": {
+  "select": [
+   "vo_mech_select_0",
+   "vo_mech_select_1",
+   "vo_mech_select_2",
+   "vo_mech_select_3"
+  ],
+  "move": [
+   "vo_mech_move_0",
+   "vo_mech_move_1",
+   "vo_mech_move_2"
+  ],
+  "attack": [
+   "vo_mech_attack_0",
+   "vo_mech_attack_1",
+   "vo_mech_attack_2"
+  ],
+  "nopower": [
+   "vo_mech_nopower_0",
+   "vo_mech_nopower_1"
+  ]
+ },
+ "artillery": {
+  "select": [
+   "vo_artillery_select_0",
+   "vo_artillery_select_1",
+   "vo_artillery_select_2",
+   "vo_artillery_select_3"
+  ],
+  "move": [
+   "vo_artillery_move_0",
+   "vo_artillery_move_1",
+   "vo_artillery_move_2"
+  ],
+  "attack": [
+   "vo_artillery_attack_0",
+   "vo_artillery_attack_1",
+   "vo_artillery_attack_2"
+  ]
+ },
+ "truck": {
+  "select": [
+   "vo_truck_select_0",
+   "vo_truck_select_1",
+   "vo_truck_select_2"
+  ],
+  "move": [
+   "vo_truck_move_0",
+   "vo_truck_move_1"
+  ],
+  "deploy": [
+   "vo_truck_deploy_0",
+   "vo_truck_deploy_1"
+  ],
+  "undeploy": [
+   "vo_truck_undeploy_0"
+  ]
+ },
+ "announcer": {
+  "built": [
+   "vo_announcer_built_0"
+  ],
+  "trained": [
+   "vo_announcer_trained_0"
+  ],
+  "attacked": [
+   "vo_announcer_attacked_0",
+   "vo_announcer_attacked_1"
+  ],
+  "powerlost": [
+   "vo_announcer_powerlost_0"
+  ],
+  "generation": [
+   "vo_announcer_generation_0"
+  ],
+  "enemycolossus": [
+   "vo_announcer_enemycolossus_0"
+  ],
+  "colossus": [
+   "vo_announcer_colossus_0"
+  ],
+  "reactor": [
+   "vo_announcer_reactor_0"
+  ],
+  "victory": [
+   "vo_announcer_victory_0"
+  ],
+  "defeat": [
+   "vo_announcer_defeat_0"
+  ]
+ },
+ "colossus": {
+  "select": [
+   "colossus_select"
+  ],
+  "move": [
+   "colossus_move"
+  ],
+  "attack": [
+   "colossus_attack"
+  ]
+ },
+ "siege": {
+  "select": [
+   "siege_select"
+  ],
+  "move": [
+   "siege_move"
+  ],
+  "attack": [
+   "siege_attack"
+  ]
+ },
+ "music": [
+  "ambient_choir",
+  "ambient_war"
+ ],
+ "sfx": {
+  "shotSoldier": [
+   "sfx_shotSoldier"
+  ],
+  "shotMech": [
+   "sfx_shotMech"
+  ],
+  "shotColossus": [
+   "sfx_shotColossus"
+  ],
+  "hit": [
+   "sfx_hit"
+  ],
+  "shotTower": [
+   "sfx_shotTower"
+  ],
+  "warning": [
+   "sfx_warning"
+  ],
+  "genUp": [
+   "sfx_genUp"
+  ],
+  "powerDown": [
+   "sfx_powerDown"
+  ],
+  "launch": [
+   "sfx_launch"
+  ],
+  "mortar": [
+   "sfx_mortar"
+  ],
+  "explosionSmall": [
+   "sfx_explosionSmall"
+  ],
+  "explosion": [
+   "sfx_explosion"
+  ],
+  "repair": [
+   "sfx_repair"
+  ],
+  "gather": [
+   "sfx_gather"
+  ],
+  "deliver": [
+   "sfx_deliver"
+  ],
+  "built": [
+   "sfx_built"
+  ],
+  "trained": [
+   "sfx_trained"
+  ],
+  "death": [
+   "sfx_death"
+  ],
+  "deathBig": [
+   "sfx_deathBig"
+  ],
+  "destroyed": [
+   "sfx_destroyed"
+  ],
+  "ack": [
+   "sfx_ack"
+  ],
+  "ackAttack": [
+   "sfx_ackAttack"
+  ],
+  "place": [
+   "sfx_place"
+  ],
+  "error": [
+   "sfx_error"
+  ],
+  "alert": [
+   "sfx_alert"
+  ],
+  "victory": [
+   "sfx_victory"
+  ],
+  "defeat": [
+   "sfx_defeat"
+  ]
+ }
+}

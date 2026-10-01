@@ -9,3 +9,5 @@ art/models/
 art/sprites/
 art/units/
 __pycache__/
+.env
+art/audio/
