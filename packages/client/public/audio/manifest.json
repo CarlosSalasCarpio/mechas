@@ -126,6 +126,10 @@
   ],
   "defeat": [
    "vo_announcer_defeat_0"
+  ],
+  "enemydefeated": [
+   "vo_announcer_enemydefeated_0",
+   "vo_announcer_enemydefeated_1"
   ]
  },
  "colossus": {

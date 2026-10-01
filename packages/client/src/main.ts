@@ -916,6 +916,7 @@ function renderPanel(): void {
 
 let lastSel = new Set<number>();
 const reactorWarned = new Set<number>();
+const knownDefeated = new Set<number>();
 setInterval(() => {
   $('metal').textContent = String(st.players[PLAYER].metal);
   $('pop').textContent = `${popUsed(st, PLAYER)} / ${st.players[PLAYER].popCap}`;
@@ -928,6 +929,13 @@ setInterval(() => {
   const selNow = [...selected].filter((id) => st.byId.get(id)?.owner === PLAYER);
   if (selNow.some((id) => !lastSel.has(id))) ackVoice('select');
   lastSel = new Set(selNow);
+  // Enemigo eliminado (si con eso no termina la partida: entonces suena la victoria).
+  st.players.forEach((pl, q) => {
+    if (pl.defeated && !knownDefeated.has(q)) {
+      knownDefeated.add(q);
+      if (st.winner < 0 && hostile(st, q, PLAYER)) voices.announce('enemydefeated', 0);
+    }
+  });
   // Reactor crítico: un coloso propio con poca vida (una vez por coloso).
   for (const u of st.units) {
     if (u.owner === PLAYER && u.type === 'colossus' && u.hp < u.maxHp / 4 && !reactorWarned.has(u.id)) {

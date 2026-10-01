@@ -19,14 +19,17 @@ for line in open(os.path.join(ROOT, '..', '.env')):
         KEY = line.split('=', 1)[1].strip()
 API = 'https://api.elevenlabs.io/v1'
 
+# Voces generadas con el modelo turbo v2.5 y español forzado (evita el acento de las voces en inglés).
+FORCE_ES = {'artillery', 'announcer'}
+
 # Voz y filtro por personaje.
 VOICES = {
     'soldier': ('SOYHLrjzK2X1ezoPC6cr', 'radio'),      # Harry
     'worker': ('N2lVS1w4EtoT3dr4eOWO', 'plain'),       # Callum
     'mech': ('nPczCjzI2devNBz1zQrb', 'cockpit'),       # Brian
-    'artillery': ('EXAVITQu4vr4xnSDxMaL', 'cockpit'),  # Sarah
+    'artillery': ('cgSgspJ2msm6clMCkdW9', 'angel'),    # Jessica (dulce; español forzado: sin acento)
     'truck': ('iP95p4xoKVk53GoZ742B', 'radio'),        # Chris
-    'announcer': ('pNInz6obpgDQGcFmaJgB', 'pa'),       # Adam
+    'announcer': ('pqHfZKP75CvOlQylNhV4', 'pa'),       # Bill (sabio, pausado)
 }
 
 LINES = {
@@ -67,6 +70,7 @@ LINES = {
         'enemycolossus': ['El enemigo está forjando un coloso.'],
         'colossus': ['Un coloso ha despertado.'],
         'reactor': ['Reactor crítico.'],
+        'enemydefeated': ['Un enemigo ha caído. Que su alma encuentre reposo.', 'El adversario ha sido purgado. La luz prevalece.'],
         'victory': ['Victoria. El cielo es nuestro.'],
         'defeat': ['Derrota. Que el silencio nos perdone.'],
     },
@@ -74,12 +78,12 @@ LINES = {
 
 # Colosos: sin voz, sonidos generados.
 SFX = {
-    'colossus_select': ('Deep angelic choir holding a sacred chord, distant cathedral organ, ethereal and mystical, with a slow mechanical heartbeat underneath', 3.0),
-    'colossus_move': ('Ethereal angelic choir swell with heavy giant mechanical footstep, sacred and ominous', 2.5),
-    'colossus_attack': ('Massive metallic impact of a giant robot fist with a reverberating holy choir echo', 2.5),
-    'siege_select': ('Robotic metallic insect wings buzzing, mechanical drone hum with electronic chirps and clicks', 2.5),
-    'siege_move': ('Giant mechanical mosquito wings buzzing and servo motors whirring, metallic', 2.5),
-    'siege_attack': ('Rocket launcher charging up with an electric hiss followed by a rocket whoosh', 2.5),
+    'colossus_select': ('Soft ethereal angelic choir humming a gentle sustained chord, distant and airy, calm and holy, no percussion', 3.0),
+    'colossus_move': ('Soft ethereal angelic choir breathing a gentle rising chord, airy and holy, with a faint muffled distant footstep', 2.5),
+    'colossus_attack': ('Soft angelic choir swell ending in a deep muffled distant thud, holy and calm', 2.5),
+    'siege_select': ('Fast metallic fan blades spinning with a low electric buzz, like a big drone hovering, mechanical', 2.5),
+    'siege_move': ('Metallic fan blades spinning up with a low electric buzz, a big drone flying forward, mechanical', 2.5),
+    'siege_attack': ('Big drone rotor buzz rising quickly followed by a short rocket launch whoosh, mechanical', 2.5),
 }
 
 # Efectos del juego (sustituyen a los sintetizados de packages/client/src/audio.ts; mismo nombre).
@@ -131,6 +135,8 @@ FILTERS = {
     # Megafonía del centro de mando: reverberación de sala grande.
     'pa': 'highpass=f=120,aecho=0.8:0.5:60|120:0.3|0.15',
     'plain': 'highpass=f=80',
+    # Angelical: reverberación etérea suave.
+    'angel': 'highpass=f=200,aecho=0.8:0.6:90|180:0.25|0.12',
 }
 
 
@@ -160,7 +166,10 @@ def voices(manifest):
             for i, text in enumerate(lines):
                 name = f'vo_{unit}_{cat}_{i}'
                 raw = os.path.join(RAW, name + '.mp3')
-                if post(f'/text-to-speech/{vid}?output_format=mp3_44100_128', {'text': text, 'model_id': 'eleven_multilingual_v2', 'voice_settings': {'stability': 0.45, 'similarity_boost': 0.8, 'style': 0.35}}, raw):
+                body = {'text': text, 'model_id': 'eleven_multilingual_v2', 'voice_settings': {'stability': 0.45, 'similarity_boost': 0.8, 'style': 0.35}}
+                if unit in FORCE_ES:
+                    body = {'text': text, 'model_id': 'eleven_turbo_v2_5', 'language_code': 'es', 'voice_settings': {'stability': 0.6 if unit == 'announcer' else 0.55, 'similarity_boost': 0.75, 'style': 0.15 if unit == 'announcer' else 0.2}}
+                if post(f'/text-to-speech/{vid}?output_format=mp3_44100_128', body, raw):
                     print('voz', name, text)
                 if os.path.exists(raw):
                     ffmpeg(raw, os.path.join(OUT, name + '.mp3'), FILTERS[filt])
@@ -174,7 +183,9 @@ def sfx(manifest):
         if post('/sound-generation', {'text': prompt, 'duration_seconds': dur, 'prompt_influence': 0.5}, raw):
             print('sonido', name)
         if os.path.exists(raw):
-            ffmpeg(raw, os.path.join(OUT, name + '.mp3'), 'afade=t=out:st=%.2f:d=0.4' % (dur - 0.4), bitrate='80k')
+            # Suavizado: sin agudos estridentes, comprimido y más bajo que las voces.
+            af = 'lowpass=f=7000,acompressor=threshold=0.25:ratio=3,afade=t=in:d=0.15,afade=t=out:st=%.2f:d=0.5' % (dur - 0.5)
+            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', raw, '-af', af + ',loudnorm=I=-20:TP=-3', '-ac', '1', '-b:a', '80k', os.path.join(OUT, name + '.mp3')], check=True)
             unit, cat = name.split('_', 1)
             manifest.setdefault(unit, {})[cat] = [name]
 

@@ -386,7 +386,8 @@ export class Voices {
   announce(cat: string, gap = 8000): void {
     if (this.muted || !this.ctx) return;
     const now = performance.now();
-    if (now - (this.lastCat.get(cat) ?? -1e9) < gap || now < this.announcerBusy) return;
+    // Los avisos sin tiempo mínimo (gap 0) son los importantes: no esperan a que termine otro.
+    if (now - (this.lastCat.get(cat) ?? -1e9) < gap || (gap > 0 && now < this.announcerBusy)) return;
     const buf = this.pick('announcer', cat);
     if (!buf) return;
     this.lastCat.set(cat, now);
