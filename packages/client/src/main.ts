@@ -137,12 +137,29 @@ addEventListener('keydown', (e) => {
   keys.add(k);
   if (k === 'p') setPaused(!paused);
   if (k === 'f') toggleFullscreen();
-  if (k === 'i') nextIdleWorker();
+  if (k === 'i') {
+    if (e.shiftKey) selectAllIdle();
+    else nextIdleWorker();
+  }
   if (k === ' ') {
-    // Espacio: centrar la cámara en el cuartel general propio.
+    // Espacio: centrar la cámara en el cuartel general propio y seleccionarlo.
     e.preventDefault();
     const hq = st.buildings.find((b) => b.owner === PLAYER && b.type === 'hq');
-    if (hq) centerOn((hq.tx + hq.size / 2) * SUB, (hq.ty + hq.size / 2) * SUB);
+    if (hq) {
+      centerOn((hq.tx + hq.size / 2) * SUB, (hq.ty + hq.size / 2) * SUB);
+      selected.clear();
+      selected.add(hq.id);
+      placing = null;
+      targeting = false;
+    }
+  }
+  if (e.key === 'Delete') {
+    // Supr: destruir lo seleccionado (solo lo propio), como en AoE2.
+    const ids = [...selected].filter((id) => (st.byId.get(id) ?? st.buildingsById.get(id))?.owner === PLAYER);
+    if (ids.length) {
+      pending.push({ tick: st.tick, player: PLAYER, kind: 'destroy', ids });
+      selected.clear();
+    }
   }
   const action = HOTKEYS.includes(k) && !e.ctrlKey && !e.metaKey ? currentActions().find((a) => a.key === k) : undefined;
   if (action) {
@@ -173,6 +190,7 @@ app.canvas.addEventListener(
 
 // ------------------------------------------------------------ selección, órdenes y cursor
 const selected = new Set<number>();
+Object.assign((window as unknown as { __game: object }).__game, { selected });
 const pending: Command[] = [];
 Object.assign((window as unknown as { __game: object }).__game, { pending });
 const log: Command[] = [];
@@ -408,6 +426,15 @@ function playFx(): void {
     if (f.kind === 'shot' && !mine && hostile(st, f.owner, PLAYER)) {
       const victim = st.byId.get(f.target) ?? st.buildingsById.get(f.target);
       if (victim?.owner === PLAYER) voices.announce('attacked', 25000);
+    }
+    if (f.kind === 'placeFailed' && mine) {
+      sfx.play('error');
+      showToast(f.reason === 'metal' ? 'Sin metal suficiente para los cimientos' : 'Otro llegó antes: el sitio ya está ocupado');
+      continue;
+    }
+    if (f.kind === 'placed' && mine) {
+      sfx.play('place');
+      continue;
     }
     if (f.kind === 'built' && mine) {
       sfx.play('built');
@@ -1138,9 +1165,25 @@ function nextIdleWorker(): void {
   sfx.play('ack');
 }
 
+/** Selecciona a todos los obreros ociosos (Mayús + I o Mayús + clic en el botón). */
+function selectAllIdle(): void {
+  const list = idleWorkers();
+  if (list.length === 0) {
+    sfx.play('error');
+    return;
+  }
+  selected.clear();
+  for (const u of list) selected.add(u.id);
+  placing = null;
+  targeting = false;
+  centerOn(list[0].x, list[0].y);
+  sfx.play('ack');
+}
+
 const idleBtn = $('idle');
-idleBtn.addEventListener('click', () => {
-  nextIdleWorker();
+idleBtn.addEventListener('click', (e) => {
+  if (e.shiftKey) selectAllIdle();
+  else nextIdleWorker();
   idleBtn.blur();
 });
 setInterval(() => {

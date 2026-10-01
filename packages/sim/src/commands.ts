@@ -8,6 +8,8 @@ export type Command =
   | { tick: number; player: number; kind: 'move'; units: number[]; x: number; y: number; queued?: boolean }
   | { tick: number; player: number; kind: 'attack'; units: number[]; target: number }
   | { tick: number; player: number; kind: 'stop'; units: number[] }
+  /** Destruir unidades o edificios propios (tecla Supr), como en AoE2. */
+  | { tick: number; player: number; kind: 'destroy'; ids: number[] }
   | { tick: number; player: number; kind: 'amove'; units: number[]; x: number; y: number; queued?: boolean }
   /** Obreros a recolectar de un yacimiento. */
   | { tick: number; player: number; kind: 'gather'; units: number[]; target: number; queued?: boolean }

@@ -14,14 +14,15 @@ describe('cola de órdenes (Shift)', () => {
       { tick: 0, player: 0, queued: true, kind: 'gather', units: [w.id], target: node.id },
     ];
     step(st, cmds);
-    // Los dos edificios se colocan y cobran al momento.
-    expect(st.buildings.filter((b) => !b.complete)).toHaveLength(2);
-    expect(st.players[0].metal).toBe(1000 - BUILDINGS.depot.cost - BUILDINGS.barracks.cost);
-    expect(w.order.kind).toBe('build');
+    // Nada se coloca ni se cobra hasta que el obrero llega a cada sitio.
+    expect(st.buildings.filter((b) => !b.complete)).toHaveLength(0);
+    expect(st.players[0].metal).toBe(1000);
+    expect(w.order.kind).toBe('place');
     expect(w.orderQueue).toHaveLength(2);
 
-    const total = BUILDINGS.depot.buildTime + BUILDINGS.barracks.buildTime + 400;
+    const total = BUILDINGS.depot.buildTime + BUILDINGS.barracks.buildTime + 800;
     for (let i = 0; i < total && w.order.kind !== 'gather'; i++) step(st, []);
+    expect(st.buildings.filter((b) => b.owner === 0 && b.type !== 'hq')).toHaveLength(2);
     expect(st.buildings.filter((b) => b.owner === 0).every((b) => b.complete)).toBe(true);
     expect(w.order.kind).toBe('gather');
   });
@@ -45,8 +46,8 @@ describe('depósito', () => {
     const node = st.nodes[0];
     const w = st.units.find((u) => u.owner === 0 && u.type === 'worker')!;
     step(st, [{ tick: 0, player: 0, kind: 'build', units: [w.id], building: 'depot', tx: node.tx - 1, ty: node.ty - 4 }]);
-    expect(st.buildings.some((b) => b.type === 'depot')).toBe(true);
-    for (let i = 0; i < BUILDINGS.depot.buildTime + 400 && w.order.kind !== 'gather'; i++) step(st, []);
+    for (let i = 0; i < BUILDINGS.depot.buildTime + 800 && w.order.kind !== 'gather'; i++) step(st, []);
+    expect(st.buildings.some((b) => b.type === 'depot' && b.complete)).toBe(true);
     expect(w.order.kind).toBe('gather');
   });
 });

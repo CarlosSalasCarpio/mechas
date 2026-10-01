@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILDINGS, createGame, POP_CAP, step, SUB, UNITS, addUnit, type Command, type State } from '../src';
+import { addBuilding, BUILDINGS, createGame, POP_CAP, step, SUB, UNITS, addUnit, type Command, type State } from '../src';
 
 const workers = (st: State, p: number) => st.units.filter((u) => u.owner === p && u.type === 'worker');
 
@@ -28,6 +28,10 @@ describe('economía', () => {
     const w = workers(st, 0)[0];
     const cmd: Command = { tick: 0, player: 0, kind: 'build', units: [w.id], building: 'barracks', tx: hq.tx + 7, ty: hq.ty + 5 };
     step(st, [cmd]);
+    // Los cimientos se ponen (y se cobran) cuando llega el obrero.
+    expect(st.buildings.some((x) => x.type === 'barracks')).toBe(false);
+    expect(st.players[0].metal).toBe(300);
+    for (let i = 0; i < 400 && !st.buildings.some((x) => x.type === 'barracks'); i++) step(st, []);
     const b = st.buildings.find((x) => x.type === 'barracks')!;
     expect(b.complete).toBe(false);
     expect(st.players[0].metal).toBe(300 - BUILDINGS.barracks.cost);
@@ -72,11 +76,9 @@ describe('economía', () => {
     st.players[1].metal = 5000;
     st.players[1].gen = 3;
     const hq = st.buildings.find((b) => b.owner === 1 && b.type === 'hq')!;
-    step(st, [{ tick: 0, player: 1, kind: 'build', units: [workers(st, 1)[0].id], building: 'cradle', tx: hq.tx - 8, ty: hq.ty - 2 }]);
-    const cradle = st.buildings.find((b) => b.type === 'cradle')!;
-    cradle.complete = true;
+    const cradle = addBuilding(st, 1, 'cradle', hq.tx - 8, hq.ty - 2)!;
     step(st, [{ tick: 1, player: 1, kind: 'train', building: cradle.id, unit: 'colossus' }]);
-    expect(st.events).toEqual([{ tick: 1, player: 1, kind: 'colossus' }]);
+    expect(st.events).toEqual([{ tick: 0, player: 1, kind: 'colossus' }]);
   });
 });
 

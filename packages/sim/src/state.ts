@@ -19,6 +19,8 @@ export type Fx =
   | { kind: 'launch'; unit: number; utype: UnitType; owner: number; x: number; y: number; projectile: number }
   | { kind: 'explosion'; owner: number; x: number; y: number; splash: number; utype: UnitType }
   | { kind: 'towerShot'; owner: number; x: number; y: number; target: number; tx: number; ty: number }
+  | { kind: 'placeFailed'; owner: number; x: number; y: number; reason: 'blocked' | 'metal' }
+  | { kind: 'placed'; owner: number; x: number; y: number }
   | { kind: 'income'; owner: number; x: number; y: number; amount: number }
   | { kind: 'reactor'; owner: number; x: number; y: number; radius: number }
   | { kind: 'researched'; owner: number; x: number; y: number; tech: TechId }

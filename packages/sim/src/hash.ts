@@ -47,6 +47,10 @@ export function hashState(st: State): number {
       if (q.kind === 'move' || q.kind === 'amove') {
         mix(q.x);
         mix(q.y);
+      } else if (q.kind === 'place') {
+        mix(7);
+        mix(q.tx * 4096 + q.ty);
+        mix(q.building.charCodeAt(0) * 31 + q.building.length);
       } else mix(q.kind === 'gather' ? q.node : q.target + (q.kind === 'repair' ? 1 << 24 : 0));
     }
     mix(u.resumeX);
@@ -63,6 +67,10 @@ export function hashState(st: State): number {
     } else if (o.kind === 'gather') {
       mix(3);
       mix(o.node);
+    } else if (o.kind === 'place') {
+      mix(7);
+      mix(o.tx * 4096 + o.ty);
+      mix(o.building.charCodeAt(0) * 31 + o.building.length);
     } else {
       mix(o.kind === 'build' ? 4 : 6);
       mix(o.target);

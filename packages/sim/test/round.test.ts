@@ -6,11 +6,11 @@ describe('niebla y obras', () => {
     const st = createGame({ seed: 3 });
     st.players[0].metal = 1000;
     const w = st.units.find((u) => u.owner === 0 && u.type === 'worker')!;
-    // Lejos de todo lo que ve el jugador.
-    step(st, [{ tick: 0, player: 0, kind: 'build', units: [w.id], building: 'depot', tx: 60, ty: 20 }]);
+    // Unos cimientos lejos de todo lo que ve el jugador.
+    void w;
+    expect(addBuilding(st, 0, 'depot', 60, 20, false)).not.toBeNull();
     step(st, []);
     step(st, []);
-    expect(st.buildings.some((b) => b.type === 'depot')).toBe(true);
     expect(isVisible(st, 0, 60.5 * SUB, 20.5 * SUB)).toBe(false);
     expect(isExplored(st, 0, 60.5 * SUB, 20.5 * SUB)).toBe(true);
     expect(isExplored(st, 0, 60.5 * SUB, 16 * SUB)).toBe(false);

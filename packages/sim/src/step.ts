@@ -230,6 +230,10 @@ function applyQueued(st: State, u: Unit, q: QueuedOrder): boolean {
       setOrder(u, { kind: 'build', target: b.id });
       return true;
     }
+    case 'place':
+      if (u.type !== 'worker') return false;
+      setOrder(u, { ...q });
+      return true;
     case 'repair': {
       const b = st.buildingsById.get(q.target);
       if (!b || !b.complete || b.hp <= 0 || b.hp >= b.maxHp || u.type !== 'worker') return false;
@@ -278,6 +282,19 @@ function applyCommand(st: State, c: Command): void {
     case 'stop':
       for (const u of ownedUnits(st, c.player, c.units)) command(u, { kind: 'idle' });
       return;
+    case 'destroy':
+      // Se marcan a 0 de vida: el paso normal de bajas los retira (con su explosión, reactor incluido).
+      for (const id of c.ids) {
+        const e = st.byId.get(id) ?? st.buildingsById.get(id);
+        if (!e || e.owner !== c.player || e.hp <= 0) continue;
+        if ('tx' in e && !e.complete) {
+          // Obra cancelada: se devuelve el metal de lo que faltaba por construir (todo, si no había empezado).
+          const bt = BUILDINGS[e.type].buildTime;
+          pl.metal += idiv(BUILDINGS[e.type].cost * (bt - e.progress), bt);
+        }
+        e.hp = 0;
+      }
+      return;
     case 'gather': {
       if (!st.nodesById.has(c.target)) return;
       for (const u of ownedUnits(st, c.player, c.units)) {
@@ -291,14 +308,23 @@ function applyCommand(st: State, c: Command): void {
       const s = BUILDINGS[c.building];
       const workers = ownedUnits(st, c.player, c.units).filter((u) => u.type === 'worker');
       if (!s || c.building === 'hq' || workers.length === 0 || pl.metal < s.cost || (BUILDING_GEN[c.building] ?? 1) > pl.gen) return;
-      if (!canPlaceBuilding(st, c.building, Math.trunc(c.tx), Math.trunc(c.ty))) return;
-      const b = addBuilding(st, c.player, c.building, Math.trunc(c.tx), Math.trunc(c.ty), false);
-      if (!b) return;
-      if (b.type === 'relay') b.maxHp = RELAY_HP[pl.gen];
-      pl.metal -= s.cost;
-      if (pl.instant) finish(st, b);
-      else if (c.queued) for (const u of workers) enqueue(st, u, { kind: 'build', target: b.id });
-      else for (const u of workers) command(u, { kind: 'build', target: b.id });
+      const tx = Math.trunc(c.tx);
+      const ty = Math.trunc(c.ty);
+      if (!canPlaceBuilding(st, c.building, tx, ty)) return;
+      if (pl.instant) {
+        // Truco de construcción instantánea: cimientos y edificio terminado en el acto.
+        const b = addBuilding(st, c.player, c.building, tx, ty, false);
+        if (!b) return;
+        if (b.type === 'relay') b.maxHp = RELAY_HP[pl.gen];
+        pl.metal -= s.cost;
+        finish(st, b);
+        return;
+      }
+      // Los cimientos se ponen cuando llegue el primer obrero: hasta entonces el sitio no se reserva
+      // (cualquiera puede ganarlo) ni se cobra el metal.
+      const order = { kind: 'place' as const, building: c.building, tx, ty };
+      if (c.queued) for (const u of workers) enqueue(st, u, order);
+      else for (const u of workers) command(u, { ...order });
       return;
     }
     case 'construct': {
@@ -678,6 +704,8 @@ function think(st: State, u: Unit, grid: Grid): void {
       return gather(st, u, u.order.node);
     case 'build':
       return build(st, u, u.order.target);
+    case 'place':
+      return place(st, u);
     case 'repair':
       return repair(st, u, u.order.target);
     case 'attack':
@@ -936,6 +964,43 @@ function build(st: State, u: Unit, id: number): void {
   b.hp = Math.min(b.maxHp, b.hp + idiv(b.maxHp * (b.progress + 1), bt) - idiv(b.maxHp * b.progress, bt));
   b.progress++;
   if (b.progress >= bt) finish(st, b, false);
+}
+
+/**
+ * Ir a poner cimientos. Al llegar: si otro obrero propio ya los puso, ayudar a construir; si el sitio sigue
+ * libre (y hay metal), ponerlos y cobrarlos; si no, la orden se cancela sin coste.
+ */
+function place(st: State, u: Unit): void {
+  if (u.order.kind !== 'place') return;
+  const { building, tx, ty } = u.order;
+  const s = BUILDINGS[building];
+  const pl = st.players[u.owner];
+  const mine = st.buildings.find((b) => b.owner === u.owner && b.type === building && b.tx === tx && b.ty === ty && b.hp > 0);
+  if (mine) {
+    if (mine.complete) setOrder(u, { kind: 'idle' });
+    else setOrder(u, { kind: 'build', target: mine.id });
+    return;
+  }
+  if (!goWork(st, u, tx, ty, s.size)) {
+    setOrder(u, { kind: 'idle' });
+    return;
+  }
+  if (!inReach(u, tx, ty, s.size)) return;
+  const c = { x: tx * SUB + (s.size * SUB) / 2, y: ty * SUB + (s.size * SUB) / 2 };
+  if (!canPlaceBuilding(st, building, tx, ty) || pl.metal < s.cost || (BUILDING_GEN[building] ?? 1) > pl.gen) {
+    st.fx.push({ kind: 'placeFailed', owner: u.owner, x: c.x, y: c.y, reason: pl.metal < s.cost ? 'metal' : 'blocked' });
+    setOrder(u, { kind: 'idle' });
+    return;
+  }
+  const b = addBuilding(st, u.owner, building, tx, ty, false);
+  if (!b) {
+    setOrder(u, { kind: 'idle' });
+    return;
+  }
+  if (b.type === 'relay') b.maxHp = RELAY_HP[pl.gen];
+  pl.metal -= s.cost;
+  st.fx.push({ kind: 'placed', owner: u.owner, x: c.x, y: c.y });
+  setOrder(u, { kind: 'build', target: b.id });
 }
 
 /** Reparar: los obreros devuelven vida al edificio y se cobra metal según lo reparado. */

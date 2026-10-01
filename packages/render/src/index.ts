@@ -187,6 +187,9 @@ export class GameView {
   private decor: Decor | null = null;
   private readonly anim = new Map<number, UnitAnimState>();
   private readonly ventSprites: PixiSprite[] = [];
+  private readonly ghostArt = new PixiSprite(Texture.EMPTY);
+  /** Hologramas de los cimientos que tus obreros van a poner (aún no existen en el mapa). */
+  private readonly pendingArt: PixiSprite[] = [];
 
   private readonly unitSprites = new Map<number, UnitSprite>();
   private readonly bodyCache = new Map<string, { tex: Texture; ax: number; ay: number }>();
@@ -224,7 +227,9 @@ export class GameView {
     this.fogTex.source.scaleMode = 'linear';
     this.fog = new PixiSprite(this.fogTex);
     this.fog.setFromMatrix(new Matrix(TW / 2, TH / 2, -TW / 2, TH / 2, 0, 0));
-    this.world.addChild(this.terrainLayer, this.ventGfx, this.powerGfx, this.groundFx, this.entityLayer, this.fxGfx, this.projGfx, this.fxLayer, this.fog, this.ghost);
+    this.world.addChild(this.terrainLayer, this.ventGfx, this.powerGfx, this.groundFx, this.entityLayer, this.fxGfx, this.projGfx, this.fxLayer, this.fog, this.ghost, this.ghostArt);
+    this.ghostArt.blendMode = 'add';
+    this.ghostArt.visible = false;
     this.entityLayer.sortableChildren = true;
   }
 
@@ -251,6 +256,41 @@ export class GameView {
     g.destroy();
     this.bodyCache.set(key, t);
     return t;
+  }
+
+  /** Hologramas de cimientos pendientes: órdenes 'place' (actuales y en cola) de los obreros propios. */
+  private drawPending(st: State): void {
+    const seen = new Set<string>();
+    let n = 0;
+    for (const u of st.units) {
+      if (u.owner !== this.me || u.type !== 'worker') continue;
+      for (const o of [u.order, ...u.orderQueue]) {
+        if (o.kind !== 'place') continue;
+        const key = `${o.building}|${o.tx}|${o.ty}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const frame = BUILDING_ART[o.building];
+        const tex = frame ? decorTexture(frame) : null;
+        if (!tex) continue;
+        let spr = this.pendingArt[n];
+        if (!spr) {
+          spr = new PixiSprite(tex);
+          spr.blendMode = 'add';
+          this.pendingArt.push(spr);
+          this.entityLayer.addChild(spr);
+        }
+        if (spr.texture !== tex) spr.texture = tex;
+        spr.anchor.copyFrom(tex.defaultAnchor ?? { x: 0.5, y: 1 });
+        const half = (BUILDINGS[o.building].size * SUB) / 2;
+        spr.position.set(isoX(o.tx * SUB + half, o.ty * SUB + half), isoY(o.tx * SUB + half, o.ty * SUB + half));
+        spr.zIndex = spr.position.y;
+        spr.tint = 0x7fd4ff;
+        spr.alpha = 0.3 + 0.1 * Math.sin(this.time * 4 + n);
+        spr.visible = true;
+        n++;
+      }
+    }
+    for (let i = n; i < this.pendingArt.length; i++) this.pendingArt[i].visible = false;
   }
 
   /**
@@ -568,7 +608,11 @@ export class GameView {
       s.c.zIndex = s.c.position.y;
       s.c.tint = 0xffffff;
       s.c.visible = this.inView(px, py);
-      if (s.c.visible) this.buildingBars(s.c, sel || b.hp < b.maxHp ? b.hp / b.maxHp : -1, res >= 0 ? res / 100 : train >= 0 ? train / 100 : -1);
+      if (s.c.visible) this.buildingBars(s.c, sel || b.hp < b.maxHp ? b.hp / b.maxHp : -1, !b.complete ? prog / 100 : res >= 0 ? res / 100 : train >= 0 ? train / 100 : -1);
+      if (!b.complete) {
+        const holo = s.c.children.find((ch) => ch.label === 'holo');
+        if (holo) holo.alpha = 0.38 + 0.12 * Math.sin(this.time * 4 + b.id);
+      }
       if (b.owner !== me) s.foot = { tx: b.tx, ty: b.ty, size: b.size };
     }
     const alive = new Set<number>();
@@ -622,6 +666,7 @@ export class GameView {
       }
     }
     for (const id of this.anim.keys()) if (!alive.has(id)) this.anim.delete(id);
+    this.drawPending(st);
     for (const [id, s] of this.unitSprites) {
       if (alive.has(id)) continue;
       s.c.destroy({ children: true });
@@ -1123,6 +1168,7 @@ export class GameView {
   setGhost(type: BuildingType | null, tx: number, ty: number, valid: boolean): void {
     const g = this.ghost;
     g.clear();
+    this.ghostArt.visible = false;
     if (!type) return;
     const size = BUILDINGS[type].size;
     const x0 = tx * SUB;
@@ -1131,8 +1177,20 @@ export class GameView {
     const y1 = y0 + size * SUB;
     const color = valid ? 0x4ade80 : 0xef4444;
     g.poly([isoX(x0, y0), isoY(x0, y0), isoX(x1, y0), isoY(x1, y0), isoX(x1, y1), isoY(x1, y1), isoX(x0, y1), isoY(x0, y1)])
-      .fill({ color, alpha: 0.3 })
+      .fill({ color, alpha: 0.18 })
       .stroke({ width: 2, color, alpha: 0.9 });
+    // Holograma del edificio real, verde si cabe y rojo si no, con un leve parpadeo.
+    const art = BUILDING_ART[type] ? decorTexture(BUILDING_ART[type]!) : null;
+    this.ghostArt.visible = !!art;
+    if (art) {
+      if (this.ghostArt.texture !== art) {
+        this.ghostArt.texture = art;
+        this.ghostArt.anchor.copyFrom(art.defaultAnchor ?? { x: 0.5, y: 1 });
+      }
+      this.ghostArt.position.set(isoX((x0 + x1) / 2, (y0 + y1) / 2), isoY((x0 + x1) / 2, (y0 + y1) / 2));
+      this.ghostArt.tint = valid ? 0x9dffc8 : 0xff8080;
+      this.ghostArt.alpha = 0.45 + 0.12 * Math.sin(this.time * 5);
+    }
   }
 }
 
@@ -1287,25 +1345,69 @@ const BUILDING_ART: Partial<Record<BuildingType, string>> = { hq: 'hq_0', barrac
  * Edificio como sprite: el render en color y encima la máscara de color de equipo teñida con el color del
  * jugador. Devuelve false si el atlas no está cargado (se dibuja la versión vectorial).
  */
-function drawBuildingArt(g: Graphics, c: Container, b: Building, selected: boolean, frame: string): boolean {
+function drawBuildingArt(g: Graphics, c: Container, b: Building, selected: boolean, frame: string, prog: number): boolean {
   const tex = decorTexture(frame);
   if (!tex) return false;
   const team = decorTexture(`${frame}_team`);
   let base = c.children.find((ch) => ch.label === 'art') as PixiSprite | undefined;
   if (!base) {
+    // Holograma (obra): el edificio entero, translúcido y azulado, detrás de la parte ya levantada.
+    const holo = new PixiSprite(tex);
+    holo.label = 'holo';
+    holo.tint = 0x7fd4ff;
+    c.addChildAt(holo, 1);
     base = new PixiSprite(tex);
     base.label = 'art';
-    c.addChildAt(base, 1);
+    c.addChildAt(base, 2);
     if (team) {
       const t = new PixiSprite(team);
       t.label = 'art-team';
       t.tint = PLAYER_COLORS[b.owner] ?? 0xcccccc;
-      c.addChildAt(t, 2);
+      c.addChildAt(t, 3);
     }
+    const mask = new Graphics();
+    mask.label = 'art-mask';
+    c.addChild(mask);
+    const scan = new Graphics();
+    scan.label = 'scan';
+    c.addChild(scan);
   }
-  const hw = (b.size * TW) / 2;
-  const hh = (b.size * TH) / 2;
-  if (selected) g.poly([0, -hh - 4, hw + 8, 0, 0, hh + 4, -hw - 8, 0]).stroke({ width: 2, color: 0xffffff });
+  const holo = c.children.find((ch) => ch.label === 'holo') as PixiSprite;
+  const teamSpr = c.children.find((ch) => ch.label === 'art-team') as PixiSprite | undefined;
+  const mask = c.children.find((ch) => ch.label === 'art-mask') as Graphics;
+  const scan = c.children.find((ch) => ch.label === 'scan') as Graphics;
+  const done = prog >= 100;
+  holo.visible = !done;
+  scan.clear();
+  mask.clear();
+  if (done) {
+    base.mask = null;
+    if (teamSpr) teamSpr.mask = null;
+    mask.visible = false;
+  } else {
+    // La parte construida sube en altura real (eje vertical del mundo): se muestra lo que cae dentro del
+    // prisma de la huella hasta la altura de la obra, y el plano de corte es un rombo de luz.
+    const hw = (b.size * TW) / 2;
+    const hh = (b.size * TH) / 2;
+    const full = tex.height * (tex.defaultAnchor?.y ?? 1) - hh + 6;
+    const H = full * Math.max(0.03, prog / 100);
+    const m = 1.12; // un poco más ancho que la huella: aleros y antenas que sobresalen
+    mask.visible = true;
+    mask.poly([-hw * m, 0, 0, hh * m, hw * m, 0, hw * m, -H, 0, -hh * m - H, -hw * m, -H]).fill(0xffffff);
+    base.mask = mask;
+    // Dos máscaras no pueden compartir el mismo Graphics: el color de equipo aparece al terminar.
+    if (teamSpr) teamSpr.visible = false;
+    const top = [0, -hh - H, hw, -H, 0, hh - H, -hw, -H];
+    scan.poly(top).fill({ color: 0x8fdcff, alpha: 0.14 });
+    scan.poly(top).stroke({ width: 2, color: 0xbff4ff, alpha: 0.9 });
+    // Aristas verticales del andamio de luz, desde el suelo hasta el plano de corte.
+    for (const [x, y] of [[-hw, 0], [0, hh], [hw, 0]]) scan.moveTo(x, y).lineTo(x, y - H);
+    scan.stroke({ width: 1, color: 0x8fdcff, alpha: 0.45 });
+  }
+  if (done && teamSpr) teamSpr.visible = true;
+  const hw2 = (b.size * TW) / 2;
+  const hh2 = (b.size * TH) / 2;
+  if (selected) g.poly([0, -hh2 - 4, hw2 + 8, 0, 0, hh2 + 4, -hw2 - 8, 0]).stroke({ width: 2, color: 0xffffff });
   if (b.type === 'relay') {
     // Luz de estado en lo alto de la antena: verde con red, roja sin ella.
     let light = c.children.find((ch) => ch.label === 'art-light') as Graphics | undefined;
@@ -1327,7 +1429,7 @@ function drawBuildingArt(g: Graphics, c: Container, b: Building, selected: boole
 }
 
 function drawBuilding(g: Graphics, c: Container, b: Building, selected: boolean, prog: number, train: number, gen = 1): void {
-  if (b.complete && BUILDING_ART[b.type] && drawBuildingArt(g, c, b, selected, BUILDING_ART[b.type]!)) return;
+  if (BUILDING_ART[b.type] && drawBuildingArt(g, c, b, selected, BUILDING_ART[b.type]!, b.complete ? 100 : prog)) return;
   PAL = GEN_PAL[gen] ?? GEN_PAL[1];
   const hw = (b.size * TW) / 2;
   const hh = (b.size * TH) / 2;

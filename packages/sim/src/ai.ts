@@ -48,7 +48,8 @@ export function aiCommands(st: State, p: number): Command[] {
 
   const out: Command[] = [];
   const send = (c: Plan) => out.push({ ...c, tick: st.tick, player: p } as Command);
-  let metal = st.players[p].metal;
+  // El metal de los cimientos que van de camino aún no se ha cobrado: se descuenta ya.
+  let metal = st.players[p].metal - st.units.reduce((s, u) => s + (u.owner === p && u.order.kind === 'place' ? BUILDINGS[u.order.building].cost : 0), 0);
   const home = buildingCenter(hq);
   const dist = (ax: number, ay: number, bx: number, by: number) => isqrt((ax - bx) ** 2 + (ay - by) ** 2);
 
@@ -59,6 +60,9 @@ export function aiCommands(st: State, p: number): Command[] {
   const trucks = mine.filter((u) => u.type === 'truck');
   const gen = st.players[p].gen;
   const mineB = st.buildings.filter((b) => b.owner === p);
+  /** Obreros de camino a poner cimientos (aún sin edificio en el mapa). */
+  const placing = (t?: BuildingType) => st.units.some((u) => u.owner === p && u.order.kind === 'place' && (!t || u.order.building === t));
+  const constructing = (w: Unit) => w.order.kind === 'build' || w.order.kind === 'place';
   const count = (t: BuildingType) => mineB.filter((b) => b.type === t).length;
   const ready = (t: BuildingType) => mineB.filter((b) => b.type === t && b.complete);
   const busy = new Set<number>();
@@ -90,7 +94,7 @@ export function aiCommands(st: State, p: number): Command[] {
 
   // ---- construcción: un edificio nuevo por vez, en el orden del plan
   // La red (antenas y centrales) se construye aparte y no frena el resto del plan.
-  const building = mineB.some((b) => !b.complete && !BUILDINGS[b.type].power);
+  const building = mineB.some((b) => !b.complete && !BUILDINGS[b.type].power) || st.units.some((u) => u.owner === p && u.order.kind === 'place' && !BUILDINGS[u.order.building].power);
   /** Metal apartado para el próximo edificio o unidad cara; los soldados solo gastan lo que sobra. */
   let reserve = 0;
   const tryBuild = (type: BuildingType): void => {
@@ -104,7 +108,7 @@ export function aiCommands(st: State, p: number): Command[] {
     const cx = spot.tx * SUB + (s.size * SUB) / 2;
     const cy = spot.ty * SUB + (s.size * SUB) / 2;
     const builders = workers
-      .filter((w) => !busy.has(w.id) && w.order.kind !== 'build')
+      .filter((w) => !busy.has(w.id) && !constructing(w))
       .sort((a, b) => dist(a.x, a.y, cx, cy) - dist(b.x, b.y, cx, cy) || a.id - b.id)
       .slice(0, 2);
     if (builders.length === 0) return;
@@ -114,12 +118,12 @@ export function aiCommands(st: State, p: number): Command[] {
   };
   const mechs = army.filter((u) => u.type === 'mech').length;
   // Zona elegida sin punto de entrega cerca: un depósito al lado, antes que cualquier otra obra.
-  const building2 = mineB.some((b) => b.type === 'depot' && !b.complete);
+  const building2 = mineB.some((b) => b.type === 'depot' && !b.complete) || placing('depot');
   const target = zones.find((z) => drops.every((b) => dist(buildingCenter(b).x, buildingCenter(b).y, z.x, z.y) > DEPOT_DISTANCE));
   if (!building2 && target && workers.length >= 6) {
     const s = BUILDINGS.depot;
     const spot = metal >= s.cost ? findSpot(st, { x: target.x, y: target.y }, 'depot', 2, false) : null;
-    const w = spot && workers.filter((x) => !busy.has(x.id) && x.order.kind !== 'build').sort((a, z) => a.id - z.id)[0];
+    const w = spot && workers.filter((x) => !busy.has(x.id) && !constructing(x)).sort((a, z) => a.id - z.id)[0];
     if (spot && w) {
       send({ kind: 'build', units: [w.id], building: 'depot', tx: spot.tx, ty: spot.ty });
       busy.add(w.id);
@@ -159,8 +163,8 @@ export function aiCommands(st: State, p: number): Command[] {
         .map((b) => ({ b, c: buildingCenter(b) }))
         .sort((a, z) => dist(a.c.x, a.c.y, buildingCenter(enemyHq).x, buildingCenter(enemyHq).y) - dist(z.c.x, z.c.y, buildingCenter(enemyHq).x, buildingCenter(enemyHq).y) || a.b.id - z.b.id)[0]
     : undefined;
-  const spare = () => workers.filter((x) => !busy.has(x.id) && x.order.kind !== 'build').sort((a, z) => a.id - z.id)[0];
-  if (ready('hangar').length > 0 && !mineB.some((b) => b.type === 'plant' && !b.complete) && metal >= BUILDINGS.plant.cost) {
+  const spare = () => workers.filter((x) => !busy.has(x.id) && !constructing(x)).sort((a, z) => a.id - z.id)[0];
+  if (ready('hangar').length > 0 && !mineB.some((b) => b.type === 'plant' && !b.complete) && !placing('plant') && metal >= BUILDINGS.plant.cost) {
     // Una veta libre más cerca de mí que del enemigo.
     const v = st.vents
       .filter((v) => canPlaceBuilding(st, 'plant', v.tx - 1, v.ty - 1))
@@ -176,7 +180,7 @@ export function aiCommands(st: State, p: number): Command[] {
     }
   }
   const relays = mineB.filter((b) => b.type === 'relay').length;
-  if (frontier && enemyHq && ready('hangar').length > 0 && relays < MAX_RELAYS && !mineB.some((b) => b.type === 'relay' && !b.complete) && metal >= BUILDINGS.relay.cost) {
+  if (frontier && enemyHq && ready('hangar').length > 0 && relays < MAX_RELAYS && !mineB.some((b) => b.type === 'relay' && !b.complete) && !placing('relay') && metal >= BUILDINGS.relay.cost) {
     const e = buildingCenter(enemyHq);
     const d = dist(frontier.c.x, frontier.c.y, e.x, e.y);
     // Parar cuando el borde de la red ya pone a tiro los edificios enemigos (cobertura + alcance de un mecha).
