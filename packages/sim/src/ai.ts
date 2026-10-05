@@ -48,8 +48,7 @@ export function aiCommands(st: State, p: number): Command[] {
 
   const out: Command[] = [];
   const send = (c: Plan) => out.push({ ...c, tick: st.tick, player: p } as Command);
-  // El metal de los cimientos que van de camino aún no se ha cobrado: se descuenta ya.
-  let metal = st.players[p].metal - st.units.reduce((s, u) => s + (u.owner === p && u.order.kind === 'place' ? BUILDINGS[u.order.building].cost : 0), 0);
+  let metal = st.players[p].metal;
   const home = buildingCenter(hq);
   const dist = (ax: number, ay: number, bx: number, by: number) => isqrt((ax - bx) ** 2 + (ay - by) ** 2);
 

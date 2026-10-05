@@ -107,11 +107,25 @@ export interface State {
   explored: Uint8Array;
   visionVersion: number;
   nextId: number;
+  /**
+   * Metal ya cobrado por cimientos que unos obreros van a poner. Si la obra no llega a ponerse (orden
+   * cambiada, obreros muertos, sitio ocupado), se devuelve.
+   */
+  reservations: Reservation[];
 }
 
 /** ¿Son enemigos? (Distinto equipo.) */
 export function hostile(st: State, a: number, b: number): boolean {
   return st.players[a].team !== st.players[b].team;
+}
+
+export interface Reservation {
+  id: number;
+  player: number;
+  building: BuildingType;
+  tx: number;
+  ty: number;
+  cost: number;
 }
 
 export function addUnit(st: State, owner: number, x: number, y: number, type: UnitType = 'soldier'): Unit {

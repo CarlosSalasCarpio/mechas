@@ -51,6 +51,7 @@ export function hashState(st: State): number {
         mix(7);
         mix(q.tx * 4096 + q.ty);
         mix(q.building.charCodeAt(0) * 31 + q.building.length);
+        mix(q.res);
       } else mix(q.kind === 'gather' ? q.node : q.target + (q.kind === 'repair' ? 1 << 24 : 0));
     }
     mix(u.resumeX);
@@ -71,10 +72,18 @@ export function hashState(st: State): number {
       mix(7);
       mix(o.tx * 4096 + o.ty);
       mix(o.building.charCodeAt(0) * 31 + o.building.length);
+      mix(o.res);
     } else {
       mix(o.kind === 'build' ? 4 : 6);
       mix(o.target);
     }
+  }
+  mix(st.reservations.length);
+  for (const r of st.reservations) {
+    mix(r.id);
+    mix(r.player);
+    mix(r.tx * 4096 + r.ty);
+    mix(r.cost);
   }
   mix(st.buildings.length);
   for (const b of st.buildings) {

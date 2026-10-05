@@ -1,7 +1,8 @@
 import { BUILDINGS, buildingCenter, canPlace, type BuildingType } from './building';
 import { SUB } from './constants';
 import { isqrt } from './math';
-import type { State } from './state';
+import { GRASS } from './map';
+import { hostile, type State } from './state';
 import { coverOf, linkOf } from './tech';
 
 /**
@@ -153,6 +154,43 @@ export function canPlaceBuilding(st: State, type: BuildingType, tx: number, ty: 
   if (!canPlace(st.map, tx, ty, size)) return false;
   if (type === 'plant') return !!ventAt(st, tx, ty);
   return !st.vents.some((v) => v.tx >= tx - 1 && v.tx <= tx + size && v.ty >= ty - 1 && v.ty <= ty + size);
+}
+
+/**
+ * ¿Puede `player` intentar poner aquí unos cimientos, con lo que sabe? Igual que `canPlaceBuilding`, pero
+ * los edificios enemigos que su equipo no ve ahora mismo no cuentan (si no, la orden delataría que están).
+ */
+export function canPlaceKnown(st: State, type: BuildingType, tx: number, ty: number, player: number): boolean {
+  if (canPlaceBuilding(st, type, tx, ty)) return true;
+  const size = BUILDINGS[type].size;
+  const { w, h } = st.map;
+  if (tx < 0 || ty < 0 || tx + size > w || ty + size > h) return false;
+  for (let y = ty; y < ty + size; y++) {
+    for (let x = tx; x < tx + size; x++) {
+      const i = y * w + x;
+      if (st.map.tiles[i] !== GRASS) return false;
+      const occ = st.map.occ[i];
+      if (!occ) continue;
+      const b = st.buildingsById.get(occ);
+      if (!b || !hostile(st, b.owner, player) || (st.vision[i] & teamPowerMask(st, player)) !== 0) return false;
+    }
+  }
+  if (type === 'plant') return !!ventAt(st, tx, ty);
+  return !st.vents.some((v) => v.tx >= tx - 1 && v.tx <= tx + size && v.ty >= ty - 1 && v.ty <= ty + size);
+}
+
+/** ¿Algún edificio enemigo, visible ahora para `player`, ocupa esta huella? */
+export function visibleBlocker(st: State, type: BuildingType, tx: number, ty: number, player: number): boolean {
+  const size = BUILDINGS[type].size;
+  const { w } = st.map;
+  for (let y = ty; y < ty + size; y++) {
+    for (let x = tx; x < tx + size; x++) {
+      const i = y * w + x;
+      const occ = st.map.occ[i];
+      if (occ && st.buildingsById.get(occ)?.owner !== player && (st.vision[i] & teamPowerMask(st, player)) !== 0) return true;
+    }
+  }
+  return false;
 }
 
 /** Distancia (subunidades) de un punto a la casilla con energía más cercana; 0 si ya tiene. */

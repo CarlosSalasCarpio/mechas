@@ -164,6 +164,7 @@ export function createGame(setup: GameSetup): State {
     explored: new Uint8Array(map.w * map.h),
     visionVersion: 0,
     nextId: 1,
+    reservations: [],
   };
   // Las vetas y los cuarteles generales siempre quedan en terreno limpio, sea cual sea el mapa generado.
   const clearAround = (tx: number, ty: number, r: number) => {

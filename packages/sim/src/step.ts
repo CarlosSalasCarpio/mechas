@@ -8,7 +8,7 @@ import { CARRY, GATHER_TICKS, type MetalNode } from './resource';
 import { addBuilding, addUnit, CHEAT_POP_CAP, hostile, POP_CAP, popUsed, type State } from './state';
 import { BATTERY_RECHARGE, UNITS, type QueuedOrder, type Unit } from './unit';
 import { attackDamage, batteryMax, BUILDING_GEN, carryCap, gatherTicks, refreshUnit, RELAY_HP, TECHS, towerDamage, UNIT_GEN } from './tech';
-import { canPlaceBuilding, isPowered, nearestPoweredTile, updatePower } from './power';
+import { canPlaceBuilding, canPlaceKnown, isPowered, nearestPoweredTile, updatePower, visibleBlocker } from './power';
 import { updateVision } from './vision';
 
 const REPATH_TICKS = 10;
@@ -70,7 +70,25 @@ export function step(st: State, cmds: readonly Command[]): void {
   removeDead(st);
   updateVision(st);
   eliminate(st);
+  refundReservations(st);
   st.tick++;
+}
+
+/** Devuelve el metal de las reservas de cimientos que ya ningún obrero va a poner. */
+function refundReservations(st: State): void {
+  if (st.reservations.length === 0) return;
+  const live = new Set<number>();
+  for (const u of st.units) {
+    if (u.hp <= 0) continue;
+    if (u.order.kind === 'place') live.add(u.order.res);
+    for (const q of u.orderQueue) if (q.kind === 'place') live.add(q.res);
+  }
+  st.reservations = st.reservations.filter((r) => {
+    if (live.has(r.id)) return true;
+    const pl = st.players[r.player];
+    if (pl && !pl.defeated) pl.metal += r.cost;
+    return false;
+  });
 }
 
 /** Termina un edificio. El truco instantáneo lo deja con la vida completa; los obreros, con la que acumularon. */
@@ -310,8 +328,10 @@ function applyCommand(st: State, c: Command): void {
       if (!s || c.building === 'hq' || workers.length === 0 || pl.metal < s.cost || (BUILDING_GEN[c.building] ?? 1) > pl.gen) return;
       const tx = Math.trunc(c.tx);
       const ty = Math.trunc(c.ty);
-      if (!canPlaceBuilding(st, c.building, tx, ty)) return;
+      // Con lo que el jugador sabe: un edificio enemigo oculto en la niebla no bloquea la orden.
+      if (!canPlaceKnown(st, c.building, tx, ty, c.player)) return;
       if (pl.instant) {
+        if (!canPlaceBuilding(st, c.building, tx, ty)) return;
         // Truco de construcción instantánea: cimientos y edificio terminado en el acto.
         const b = addBuilding(st, c.player, c.building, tx, ty, false);
         if (!b) return;
@@ -320,9 +340,12 @@ function applyCommand(st: State, c: Command): void {
         finish(st, b);
         return;
       }
-      // Los cimientos se ponen cuando llegue el primer obrero: hasta entonces el sitio no se reserva
-      // (cualquiera puede ganarlo) ni se cobra el metal.
-      const order = { kind: 'place' as const, building: c.building, tx, ty };
+      // El metal se cobra ya (queda reservado); los cimientos se ponen cuando llegue el primer obrero, y
+      // hasta entonces el sitio no se reserva: cualquiera puede ganarlo. Si no llegan a ponerse, se devuelve.
+      pl.metal -= s.cost;
+      const res = st.nextId++;
+      st.reservations.push({ id: res, player: c.player, building: c.building, tx, ty, cost: s.cost });
+      const order = { kind: 'place' as const, building: c.building, tx, ty, res };
       if (c.queued) for (const u of workers) enqueue(st, u, order);
       else for (const u of workers) command(u, { ...order });
       return;
@@ -972,7 +995,7 @@ function build(st: State, u: Unit, id: number): void {
  */
 function place(st: State, u: Unit): void {
   if (u.order.kind !== 'place') return;
-  const { building, tx, ty } = u.order;
+  const { building, tx, ty, res } = u.order;
   const s = BUILDINGS[building];
   const pl = st.players[u.owner];
   const mine = st.buildings.find((b) => b.owner === u.owner && b.type === building && b.tx === tx && b.ty === ty && b.hp > 0);
@@ -981,14 +1004,22 @@ function place(st: State, u: Unit): void {
     else setOrder(u, { kind: 'build', target: mine.id });
     return;
   }
+  const c = { x: tx * SUB + (s.size * SUB) / 2, y: ty * SUB + (s.size * SUB) / 2 };
+  // En cuanto el sitio se ve ocupado (otro llegó antes, o había algo oculto en la niebla), se cancela;
+  // el metal reservado se devuelve solo, al quedarse la reserva sin obreros.
+  if (visibleBlocker(st, building, tx, ty, u.owner)) {
+    st.fx.push({ kind: 'placeFailed', owner: u.owner, x: c.x, y: c.y, reason: 'blocked' });
+    setOrder(u, { kind: 'idle' });
+    return;
+  }
   if (!goWork(st, u, tx, ty, s.size)) {
     setOrder(u, { kind: 'idle' });
     return;
   }
   if (!inReach(u, tx, ty, s.size)) return;
-  const c = { x: tx * SUB + (s.size * SUB) / 2, y: ty * SUB + (s.size * SUB) / 2 };
-  if (!canPlaceBuilding(st, building, tx, ty) || pl.metal < s.cost || (BUILDING_GEN[building] ?? 1) > pl.gen) {
-    st.fx.push({ kind: 'placeFailed', owner: u.owner, x: c.x, y: c.y, reason: pl.metal < s.cost ? 'metal' : 'blocked' });
+  const ri = st.reservations.findIndex((r) => r.id === res);
+  if (ri < 0 || !canPlaceBuilding(st, building, tx, ty)) {
+    st.fx.push({ kind: 'placeFailed', owner: u.owner, x: c.x, y: c.y, reason: 'blocked' });
     setOrder(u, { kind: 'idle' });
     return;
   }
@@ -998,7 +1029,8 @@ function place(st: State, u: Unit): void {
     return;
   }
   if (b.type === 'relay') b.maxHp = RELAY_HP[pl.gen];
-  pl.metal -= s.cost;
+  // La reserva se consume: el metal ya estaba cobrado.
+  st.reservations.splice(ri, 1);
   st.fx.push({ kind: 'placed', owner: u.owner, x: c.x, y: c.y });
   setOrder(u, { kind: 'build', target: b.id });
 }
@@ -1180,17 +1212,28 @@ function nearestEnemyUnit(st: State, u: Unit, grid: Grid): Unit | null {
 
 /** Acercarse a un punto: en línea recta si se ve, si no con A* recalculado cada pocos ticks. */
 function approach(st: State, u: Unit, x: number, y: number, maxDist: number): void {
-  if (lineWalkable(st.map, u.x, u.y, x, y)) {
+  // Si la línea recta "parece" libre pero la unidad no avanza (esquina entre dos edificios, por ejemplo),
+  // dejar de atajar en línea recta y seguir un camino de casillas.
+  const blocked = u.stuck >= APPROACH_STUCK;
+  if (!blocked && lineWalkable(st.map, u.x, u.y, x, y)) {
     u.path = [x, y];
     u.pathIdx = 0;
-  } else if (st.tick >= u.repathAt || u.pathIdx >= u.path.length) {
+  } else if (st.tick >= u.repathAt || u.pathIdx >= u.path.length || u.stuck === APPROACH_STUCK) {
     const tiles = findPath(st.map, tileOf(u.x), tileOf(u.y), tileOf(x), tileOf(y));
     u.path = toWaypoints(st.map, u.x, u.y, tiles, x, y);
     u.pathIdx = 0;
     u.repathAt = st.tick + REPATH_TICKS;
   }
+  const ox = u.x;
+  const oy = u.y;
   followPath(st.map, u, maxDist);
+  if (u.x === ox && u.y === oy) u.stuck = Math.min(u.stuck + 1, APPROACH_STUCK * 8);
+  else if (u.stuck > 0 && u.stuck < APPROACH_STUCK) u.stuck = 0;
+  else if (u.stuck >= APPROACH_STUCK * 8) u.stuck = 0;
 }
+
+/** Ticks sin moverse tras los que `approach` deja de atajar en línea recta. */
+const APPROACH_STUCK = 6;
 
 /** Avanza por los waypoints. Devuelve true al llegar al final. */
 function followPath(m: GameMap, u: Unit, maxDist = Infinity): boolean {
@@ -1208,11 +1251,10 @@ function followPath(m: GameMap, u: Unit, maxDist = Infinity): boolean {
     } else {
       let sx = idiv(dx * budget, d);
       let sy = idiv(dy * budget, d);
-      // Nunca un paso nulo por redondeo: la unidad quedaría clavada.
-      if (sx === 0 && sy === 0) {
-        if (Math.abs(dx) >= Math.abs(dy)) sx = Math.sign(dx);
-        else sy = Math.sign(dy);
-      }
+      // Nunca un paso nulo por redondeo en un eje que hay que recorrer: la unidad quedaría clavada
+      // (por ejemplo, justo en el borde de un edificio con un camino casi vertical).
+      if (sx === 0 && dx !== 0) sx = Math.sign(dx);
+      if (sy === 0 && dy !== 0) sy = Math.sign(dy);
       tryMove(m, u, u.x + sx, u.y + sy);
       budget = 0;
     }
@@ -1230,6 +1272,11 @@ function tryMove(m: GameMap, u: Unit, nx: number, ny: number): void {
   } else if (isWalkableSub(m, u.x, ny)) {
     u.y = ny;
   }
+}
+
+/** ¿La unidad va de camino a algún sitio (le quedan waypoints)? */
+function moving(u: Unit): boolean {
+  return u.pathIdx < u.path.length;
 }
 
 /** Empuja a las unidades que se superponen para que no se amontonen en un punto. */
@@ -1264,8 +1311,13 @@ function separate(st: State): void {
           const push = idiv(min - d, 2) || 1;
           const pa = idiv(push * b.radius, min);
           const pb = push - pa;
-          tryMove(st.map, a, a.x - idiv(dx * pa, d), a.y - idiv(dy * pa, d));
-          tryMove(st.map, b, b.x + idiv(dx * pb, d), b.y + idiv(dy * pb, d));
+          // Si las dos van de camino, además se apartan de lado (cada una hacia un lado opuesto): dos que se
+          // cruzan de frente por la misma línea se rodean en vez de quedarse empujándose para siempre.
+          const side = moving(a) && moving(b) ? Math.max(2, push) : 0;
+          const sx = idiv(-dy * side, d);
+          const sy = idiv(dx * side, d);
+          tryMove(st.map, a, a.x - idiv(dx * pa, d) + sx, a.y - idiv(dy * pa, d) + sy);
+          tryMove(st.map, b, b.x + idiv(dx * pb, d) - sx, b.y + idiv(dy * pb, d) - sy);
         }
       }
     }

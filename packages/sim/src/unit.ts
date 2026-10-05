@@ -12,7 +12,7 @@ export type Order =
   | { kind: 'gather'; node: number }
   | { kind: 'build'; target: number }
   /** Ir a colocar unos cimientos: se ponen (y se cobran) al llegar, si el sitio sigue libre. */
-  | { kind: 'place'; building: BuildingType; tx: number; ty: number }
+  | { kind: 'place'; building: BuildingType; tx: number; ty: number; res: number }
   | { kind: 'repair'; target: number };
 
 /** Orden en espera (Shift): se ejecuta cuando la actual termina. */
@@ -21,7 +21,7 @@ export type QueuedOrder =
   | { kind: 'amove'; x: number; y: number }
   | { kind: 'gather'; node: number }
   | { kind: 'build'; target: number }
-  | { kind: 'place'; building: BuildingType; tx: number; ty: number }
+  | { kind: 'place'; building: BuildingType; tx: number; ty: number; res: number }
   | { kind: 'repair'; target: number };
 
 export interface UnitStats {

@@ -11,7 +11,7 @@ import {
   isExplored,
   isVisible,
   BATTERY_TICKS,
-  canPlaceBuilding,
+  canPlaceKnown,
   isPowered,
   BUILDINGS,
   canPlace,
@@ -354,7 +354,7 @@ app.canvas.addEventListener('pointerdown', (e) => {
     if (e.button === 0) {
       const { tx, ty } = ghostTile(e.clientX, e.clientY, placing);
       const workers = selectedUnits().filter((u) => u.type === 'worker').map((u) => u.id);
-      if (!canPlaceBuilding(st, placing, tx, ty) || st.players[PLAYER].metal < BUILDINGS[placing].cost) {
+      if (!canPlaceKnown(st, placing, tx, ty, PLAYER) || st.players[PLAYER].metal < BUILDINGS[placing].cost) {
         sfx.play('error');
         return;
       }
@@ -429,7 +429,7 @@ function playFx(): void {
     }
     if (f.kind === 'placeFailed' && mine) {
       sfx.play('error');
-      showToast(f.reason === 'metal' ? 'Sin metal suficiente para los cimientos' : 'Otro llegó antes: el sitio ya está ocupado');
+      showToast('El sitio está ocupado: cimientos cancelados, se devolvió el metal');
       continue;
     }
     if (f.kind === 'placed' && mine) {
@@ -629,7 +629,7 @@ app.ticker.add((t) => {
     app.canvas.style.cursor = CURSORS.attack;
   } else if (placing) {
     const { tx, ty } = ghostTile(mouse.x, mouse.y, placing);
-    view.setGhost(placing, tx, ty, canPlaceBuilding(st, placing, tx, ty));
+    view.setGhost(placing, tx, ty, canPlaceKnown(st, placing, tx, ty, PLAYER));
     app.canvas.style.cursor = 'default';
   } else {
     view.setGhost(null, 0, 0, false);

@@ -14,9 +14,9 @@ describe('cola de órdenes (Shift)', () => {
       { tick: 0, player: 0, queued: true, kind: 'gather', units: [w.id], target: node.id },
     ];
     step(st, cmds);
-    // Nada se coloca ni se cobra hasta que el obrero llega a cada sitio.
+    // Se cobra todo al dar las órdenes; los cimientos aparecen al llegar el obrero a cada sitio.
     expect(st.buildings.filter((b) => !b.complete)).toHaveLength(0);
-    expect(st.players[0].metal).toBe(1000);
+    expect(st.players[0].metal).toBe(1000 - BUILDINGS.depot.cost - BUILDINGS.barracks.cost);
     expect(w.order.kind).toBe('place');
     expect(w.orderQueue).toHaveLength(2);
 

@@ -28,9 +28,9 @@ describe('economía', () => {
     const w = workers(st, 0)[0];
     const cmd: Command = { tick: 0, player: 0, kind: 'build', units: [w.id], building: 'barracks', tx: hq.tx + 7, ty: hq.ty + 5 };
     step(st, [cmd]);
-    // Los cimientos se ponen (y se cobran) cuando llega el obrero.
+    // Se cobra al dar la orden; los cimientos aparecen cuando llega el obrero.
     expect(st.buildings.some((x) => x.type === 'barracks')).toBe(false);
-    expect(st.players[0].metal).toBe(300);
+    expect(st.players[0].metal).toBe(300 - BUILDINGS.barracks.cost);
     for (let i = 0; i < 400 && !st.buildings.some((x) => x.type === 'barracks'); i++) step(st, []);
     const b = st.buildings.find((x) => x.type === 'barracks')!;
     expect(b.complete).toBe(false);
