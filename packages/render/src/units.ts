@@ -1,5 +1,4 @@
 import { Assets, Container, RenderTexture, Sprite, type Renderer, type Spritesheet, type Texture } from 'pixi.js';
-import type { UnitType } from '@epocas/sim';
 
 /**
  * Unidades prerenderizadas en Blender (art/render_units.py): 8 direcciones × animaciones, cada fotograma con
@@ -9,9 +8,10 @@ import type { UnitType } from '@epocas/sim';
 export const UNIT_ANIMS = { idle: 6, walk: 8, fire: 4 } as const;
 export type UnitAnim = keyof typeof UNIT_ANIMS;
 
-const sheets: Partial<Record<UnitType, Spritesheet>> = {};
+/** Atlas por clave: el tipo de unidad, o `h_<tipo>` para el arte propio de las Huestes. */
+const sheets: Record<string, Spritesheet> = {};
 
-export async function loadUnitArt(types: UnitType[] = ['mech', 'artillery', 'colossus', 'siege', 'soldier', 'worker', 'truck']): Promise<void> {
+export async function loadUnitArt(types: string[] = ['mech', 'artillery', 'colossus', 'siege', 'soldier', 'worker', 'truck', 'h_soldier', 'h_colossus', 'h_siege']): Promise<void> {
   await Promise.all(
     types.map(async (t) => {
       try {
@@ -23,11 +23,11 @@ export async function loadUnitArt(types: UnitType[] = ['mech', 'artillery', 'col
   );
 }
 
-export function hasUnitArt(t: UnitType): boolean {
+export function hasUnitArt(t: string): boolean {
   return sheets[t] !== undefined;
 }
 
-export function unitFrame(t: UnitType, anim: UnitAnim, dir: number, f: number): { body: Texture; team: Texture | undefined } | null {
+export function unitFrame(t: string, anim: UnitAnim, dir: number, f: number): { body: Texture; team: Texture | undefined } | null {
   const s = sheets[t];
   if (!s) return null;
   const n = f % UNIT_ANIMS[anim];

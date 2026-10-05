@@ -19,8 +19,6 @@ for line in open(os.path.join(ROOT, '..', '.env')):
         KEY = line.split('=', 1)[1].strip()
 API = 'https://api.elevenlabs.io/v1'
 
-# Voces generadas con el modelo turbo v2.5 y español forzado (evita el acento de las voces en inglés).
-FORCE_ES = {'artillery', 'announcer'}
 
 # Voz y filtro por personaje.
 VOICES = {
@@ -30,7 +28,22 @@ VOICES = {
     'artillery': ('cgSgspJ2msm6clMCkdW9', 'angel'),    # Jessica (dulce; español forzado: sin acento)
     'truck': ('iP95p4xoKVk53GoZ742B', 'radio'),        # Chris
     'announcer': ('pqHfZKP75CvOlQylNhV4', 'pa'),       # Bill (sabio, pausado)
+    # --- Huestes: acólito masculino, ángeles femeninos, órdenes superiores en pseudolatín.
+    # Voces nativas de la biblioteca (plan de pago): español latino neutro y, para el pseudolatín, italiano.
+    'h_worker': ('94zOad0g7T7K4oa7zhDq', 'chapel'),     # Mauricio (es, neutro)
+    'h_soldier': ('2rigMbVWLdqtBSCahJFX', 'chapel'),    # Tatiana (es, neutra)
+    'h_mech': ('13Cuh3NuYvWOVQtLbRN8', 'cathedral'),    # Marco (it, grave)
+    'h_artillery': ('CnVVMwhKmKZ6hKBAkL6Y', 'cathedral'),  # Giulia (it, dulce)
+    'h_truck': ('BZc8d1MPTdZkyGbE9Sin', 'cathedral'),   # Luna (it)
+    'h_colossus': ('fQmr8dTaOQq116mo2X7F', 'choir'),    # Samanta (it), doblada
+    'h_siege': ('UlwxMDtxqMDYmG6pk2q6', 'choir'),       # Luca Brasi (it), doblada
+    'h_announcer': ('qBvury71WUJfVeT1STkG', 'cathedral'),  # Samanta (es)
 }
+
+# Idioma forzado (modelo turbo v2.5): español sin acento; italiano para que el pseudolatín suene cantado.
+LANG = {'artillery': 'es', 'announcer': 'es'}
+# Las voces nativas no necesitan forzar idioma: se usa el modelo de más calidad, más pausado si es solemne.
+NATIVE = {'h_worker', 'h_soldier', 'h_announcer', 'h_mech', 'h_artillery', 'h_truck', 'h_colossus', 'h_siege'}
 
 LINES = {
     'soldier': {
@@ -60,6 +73,56 @@ LINES = {
         'move': ['En ruta.', 'Copiado.'],
         'deploy': ['Desplegando repetidor.', 'Mástil arriba, señal estable.'],
         'undeploy': ['Recogiendo equipo.'],
+    },
+    'h_worker': {
+        'select': ['¿Sí, hermano?', 'Sirvo con gusto.', 'La luz provee.', 'Aquí estoy.'],
+        'move': ['Voy.', 'Con humildad.'],
+        'build': ['Alzaré los muros.', 'Piedra bendecida.', 'Que perdure.'],
+        'gather': ['Recojo la ofrenda.', 'Lo que la tierra entrega.'],
+    },
+    'h_soldier': {
+        'select': ['Te escuchamos.', 'Estamos contigo.', 'Nuestras alas son tuyas.', 'Ordena.'],
+        'move': ['Volamos.', 'Vamos.', 'Como desees.'],
+        'attack': ['¡Por la luz!', 'Caed.', 'Que ardan.'],
+    },
+    'h_mech': {
+        'select': ['Lumina verae, adsum.', 'Oriens altae, domé.', 'Aeterna voxa, solae.'],
+        'move': ['Vadem, lumine.', 'Ambulae.', 'Procedo, astaré.'],
+        'attack': ['Ignis iudicae!', 'Fulgur aeterna!', 'Cadé, umbrae!'],
+    },
+    'h_artillery': {
+        'select': ['Stellae audio.', 'Cantum paratae.', 'Vidé, lumena.'],
+        'move': ['Migro, solae.', 'Ascendo.'],
+        'attack': ['Caelum cadet!', 'Radiae, ferí!', 'Lux descendat!'],
+    },
+    'h_truck': {
+        'select': ['Rota vigilae.', 'Oculi mille vident.', 'Orbis audit.'],
+        'move': ['Volvor.', 'Rotae, migrate.'],
+        'deploy': ['Terra consacrae.', 'Hic lumen manet.'],
+        'undeploy': ['Recolligo orbem.'],
+    },
+    'h_colossus': {
+        'select': ['Seraé, ignis aeterna.', 'Sex alae, una vox.', 'Ardeo pro te.'],
+        'move': ['Ascendae, gloriae.', 'Volemus.'],
+        'attack': ['Combure!', 'Flamma veritae!', 'Omnia ardent!'],
+    },
+    'h_siege': {
+        'select': ['Custos portae, adsum.', 'Quattuor vultus, unum verbum.', 'Vigilo.'],
+        'move': ['Gradior.', 'Custodia procedit.'],
+        'attack': ['Iudicium!', 'Murus cadet!', 'Fulmen custodis!'],
+    },
+    'h_announcer': {
+        'built': ['El santuario se alza.'],
+        'trained': ['Un nuevo ser despierta.'],
+        'attacked': ['Nos asedian.', 'La tierra santa es atacada.'],
+        'powerlost': ['Un hijo de la luz ha perdido la gracia.'],
+        'generation': ['Ascendemos de esfera. La luz nos llama.'],
+        'enemycolossus': ['El enemigo invoca a un gigante.'],
+        'colossus': ['Un serafín ha descendido.'],
+        'reactor': ['Su luz se apaga.'],
+        'enemydefeated': ['Un adversario ha caído en la sombra.', 'La luz prevalece sobre ellos.'],
+        'victory': ['Victoria. La luz es eterna.'],
+        'defeat': ['Derrota. Que la luz nos recuerde.'],
     },
     'announcer': {
         'built': ['Construcción completada.'],
@@ -117,10 +180,39 @@ GAME_SFX = {
     'defeat': ('Short somber descending orchestral chord with choir, defeat', 4.0),
 }
 
+# Efectos de las Huestes: mismos momentos, sonido místico (cristal, campanas, coro, luz).
+H_GAME_SFX = {
+    'shotSoldier': ('Short crystalline holy light bolt, bright shimmering energy zap with a tiny bell chime, magical', 0.6),
+    'shotMech': ('Radiant beam of holy light firing, soaring shimmering energy burst with a faint choir note', 0.9),
+    'shotColossus': ('Massive beam of divine light with a short angelic choir swell and deep resonant hum', 1.4),
+    'hit': ('Soft crystal impact chime, small shimmering spark', 0.5),
+    'shotTower': ('Deep temple bell struck once with an energy pulse, resonant', 0.8),
+    'launch': ('Burning sword of light thrown through the air, fiery whoosh with a shimmering choir trail', 1.5),
+    'mortar': ('Celestial thrum and rising shimmer, a sphere of holy light launched upward', 1.0),
+    'explosionSmall': ('Small burst of holy light, sparkling crystalline shatter with a soft choir breath', 1.0),
+    'explosion': ('Large explosion of divine light, glassy shimmering blast with a dramatic choir swell and rumble', 2.0),
+    'repair': ('Gentle chime and soft stone grinding, a blessing being restored', 1.0),
+    'gather': ('Single soft crystal chime, a pickaxe striking glowing ore', 0.5),
+    'deliver': ('Coins of light dropped into a stone offering bowl, soft chimes', 0.6),
+    'built': ('Stone temple completed: heavy stone settling followed by a warm angelic choir chord', 1.8),
+    'trained': ('Ethereal angelic chime and soft wings flutter, a holy being awakens', 1.4),
+    'death': ('Soft fading sigh with a dissolving shimmering chime, a spirit departing', 0.9),
+    'deathBig': ('Giant holy construct shattering like crystal, collapsing with a fading mournful choir', 2.2),
+    'destroyed': ('Sacred temple crumbling, stone collapse with a fading choir and breaking bells', 2.5),
+    'warning': ('Single low ominous temple bell toll', 1.0),
+    'genUp': ('Heavenly choir ascending chord with shimmering bells, divine ascension', 2.5),
+    'powerDown': ('Holy light fading out, descending shimmering tone', 1.2),
+    'alert': ('Urgent tolling of a large cathedral bell, two strikes', 1.6),
+    'place': ('Stone foundation placed with a soft bell chime', 0.6),
+    'victory': ('Short triumphant choral fanfare with bells, glorious and holy', 4.0),
+    'defeat': ('Short somber choir lament with a single distant bell', 4.0),
+}
+
 # Ambiente musical con la API de efectos (la de música es solo de pago): bucles largos de coro y órgano.
 AMBIENT = {
-    'ambient_choir': ('Seamless loop of a solemn Gregorian choir and cathedral organ drone, mystical, sacred, slow, epic, ambient music, no percussion', 22.0),
-    'ambient_war': ('Seamless loop of epic mystical orchestral music, low choir, deep war drums, dark synthesizer pads, ominous and majestic', 22.0),
+    'ambient_hymn1': ('Seamless loop of a slow melodic ethereal choir singing a beautiful wordless hymn melody, soft strings and warm pads underneath, mystical and epic, ambient strategy game background music, no percussion', 22.0),
+    'ambient_hymn2': ('Seamless loop of a melodic female choir and soft male choir in harmony, gentle orchestral strings, distant timpani swells, majestic and hopeful, cinematic ambient background music for a strategy game', 22.0),
+    'ambient_hymn3': ('Seamless loop of a calm melodic choir with a slow haunting melody over a soft synthesizer pad and light harp arpeggios, mysterious and sacred, ambient background music', 22.0),
 }
 
 MUSIC = ('Epic mystical orchestral soundtrack for a mecha strategy game in the style of 1990s anime like Neon Genesis Evangelion: '
@@ -135,6 +227,12 @@ FILTERS = {
     # Megafonía del centro de mando: reverberación de sala grande.
     'pa': 'highpass=f=120,aecho=0.8:0.5:60|120:0.3|0.15',
     'plain': 'highpass=f=80',
+    # Capilla: reverberación íntima de piedra.
+    'chapel': 'highpass=f=120,aecho=0.8:0.55:45|90:0.25|0.12',
+    # Catedral: reverberación larga y alta.
+    'cathedral': 'highpass=f=100,aecho=0.85:0.75:110|230|390:0.38|0.26|0.16',
+    # Coro: la voz doblada una octava más grave, todo en una nave de catedral (ver ffmpeg()).
+    'choir': 'CHOIR',
     # Angelical: reverberación etérea suave.
     'angel': 'highpass=f=200,aecho=0.8:0.6:90|180:0.25|0.12',
 }
@@ -154,7 +252,13 @@ def post(path, body, out):
 
 
 def ffmpeg(src, dst, af, stereo=False, bitrate='64k'):
-    cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-i', src, '-af', f'{af},loudnorm=I=-16:TP=-1.5', '-ac', '2' if stereo else '1', '-b:a', bitrate, dst]
+    if af == 'CHOIR':
+        fc = ('[0]asplit=3[a][b][c];[b]asetrate=44100*0.5,aresample=44100,volume=0.55[low];'
+              '[c]asetrate=44100*0.75,aresample=44100,volume=0.35[mid];[a][low][mid]amix=inputs=3:normalize=0,'
+              'highpass=f=70,aecho=0.85:0.8:140|300|520:0.42|0.3|0.2,loudnorm=I=-16:TP=-1.5')
+        cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-i', src, '-filter_complex', fc, '-ac', '1', '-b:a', bitrate, dst]
+    else:
+        cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-i', src, '-af', f'{af},loudnorm=I=-16:TP=-1.5', '-ac', '2' if stereo else '1', '-b:a', bitrate, dst]
     subprocess.run(cmd, check=True)
 
 
@@ -167,8 +271,12 @@ def voices(manifest):
                 name = f'vo_{unit}_{cat}_{i}'
                 raw = os.path.join(RAW, name + '.mp3')
                 body = {'text': text, 'model_id': 'eleven_multilingual_v2', 'voice_settings': {'stability': 0.45, 'similarity_boost': 0.8, 'style': 0.35}}
-                if unit in FORCE_ES:
-                    body = {'text': text, 'model_id': 'eleven_turbo_v2_5', 'language_code': 'es', 'voice_settings': {'stability': 0.6 if unit == 'announcer' else 0.55, 'similarity_boost': 0.75, 'style': 0.15 if unit == 'announcer' else 0.2}}
+                if unit in NATIVE:
+                    solemn = unit not in ('h_worker', 'h_soldier')
+                    body = {'text': text, 'model_id': 'eleven_multilingual_v2', 'voice_settings': {'stability': 0.6 if solemn else 0.5, 'similarity_boost': 0.8, 'style': 0.35 if solemn else 0.25, 'speed': 0.88 if solemn else 1.0}}
+                elif unit in LANG:
+                    solemn = unit.endswith('announcer') or LANG[unit] == 'it'
+                    body = {'text': text, 'model_id': 'eleven_turbo_v2_5', 'language_code': LANG[unit], 'voice_settings': {'stability': 0.65 if solemn else 0.55, 'similarity_boost': 0.75, 'style': 0.25 if solemn else 0.2, 'speed': 0.85 if solemn else 1.0}}
                 if post(f'/text-to-speech/{vid}?output_format=mp3_44100_128', body, raw):
                     print('voz', name, text)
                 if os.path.exists(raw):
@@ -202,6 +310,20 @@ def game_sfx(manifest):
             ffmpeg(raw, os.path.join(OUT, file + '.mp3'), f'afade=t=out:st={dur - fade:.2f}:d={fade:.2f}', bitrate='80k')
             out[name] = [file]
     manifest['sfx'] = out
+
+
+def h_game_sfx(manifest):
+    out = {}
+    for name, (prompt, dur) in H_GAME_SFX.items():
+        file = f'hsfx_{name}'
+        raw = os.path.join(RAW, file + '.mp3')
+        if post('/sound-generation', {'text': prompt, 'duration_seconds': dur, 'prompt_influence': 0.6}, raw):
+            print('efecto huestes', name)
+        if os.path.exists(raw):
+            fade = max(0.05, min(0.3, dur * 0.2))
+            ffmpeg(raw, os.path.join(OUT, file + '.mp3'), f'afade=t=out:st={dur - fade:.2f}:d={fade:.2f}', bitrate='80k')
+            out[name] = [file]
+    manifest['h_sfx'] = out
 
 
 def ambient(manifest):
@@ -246,5 +368,7 @@ if 'ambiente' in what:
     ambient(manifest)
 if 'efectos' in what:
     game_sfx(manifest)
+if 'efectos_h' in what:
+    h_game_sfx(manifest)
 json.dump(manifest, open(path, 'w'), indent=1, ensure_ascii=False)
 print('listo:', sum(len(v) if isinstance(v, list) else sum(len(x) for x in v.values()) for v in manifest.values()), 'archivos')

@@ -76,7 +76,9 @@ export class Sfx {
   private readonly last = new Map<SoundName, number>();
   muted = false;
   /** Busca el efecto grabado de un sonido (lo provee Voices cuando termina de cargar los audios). */
-  samples?: (name: SoundName) => AudioBuffer | null;
+  samples?: (name: SoundName, prefix: string) => AudioBuffer | null;
+  /** Facción del sonido en curso: 'h_' usa los efectos de las Huestes si existen. */
+  prefix = '';
 
   /** El AudioContext (existe tras el primer gesto del usuario). */
   get context(): AudioContext | null {
@@ -114,7 +116,7 @@ export class Sfx {
     out.connect(g).connect(this.master);
     const t = ctx.currentTime;
     // Efecto grabado (ElevenLabs) si está cargado, con una leve variación de tono para que no se repita igual.
-    const sample = this.samples?.(name);
+    const sample = this.samples?.(name, this.prefix);
     if (sample) {
       const src = ctx.createBufferSource();
       src.buffer = sample;
@@ -303,6 +305,8 @@ export class Voices {
   private readonly turn = new Map<string, number>();
   private musicStarted = false;
   muted = false;
+  /** Prefijo de las voces de la facción del jugador ('h_' para las Huestes); si falta, la voz común. */
+  prefix = '';
 
   /** Carga el índice y decodifica los audios (tras el primer gesto del usuario, que crea el AudioContext). */
   async init(ctx: AudioContext, dest: AudioNode): Promise<void> {
@@ -339,13 +343,18 @@ export class Voices {
   }
 
   /** Efecto grabado del juego por nombre (`sfx` del manifest), o null. */
-  effect(name: string): AudioBuffer | null {
+  effect(name: string, prefix = ''): AudioBuffer | null {
+    const own = prefix ? this.manifest[`${prefix}sfx`] : undefined;
+    const file0 = own && !Array.isArray(own) ? own[name]?.[0] : undefined;
+    if (file0 && this.buffers.has(file0)) return this.buffers.get(file0)!;
     const group = this.manifest.sfx;
     const file = group && !Array.isArray(group) ? group[name]?.[0] : undefined;
     return file ? (this.buffers.get(file) ?? null) : null;
   }
 
   private pick(unit: string, cat: string): AudioBuffer | null {
+    const own = this.manifest[this.prefix + unit];
+    if (this.prefix && own && !Array.isArray(own) && own[cat]?.length) unit = this.prefix + unit;
     const group = this.manifest[unit];
     const list = group && !Array.isArray(group) ? group[cat] : undefined;
     if (!list?.length) return null;

@@ -3,13 +3,15 @@ import { GRASS, generateMap } from './map';
 import { createRng } from './rng';
 import { updatePower } from './power';
 import { updateVision } from './vision';
-import { addBuilding, addNode, addUnit, POP_CAP, type State } from './state';
+import { addBuilding, addNode, addUnit, POP_CAP, type Faction, type State } from './state';
 import type { UnitType } from './unit';
 
 export interface GameSetup {
   seed: number;
   /** Equipo de cada jugador (el jugador 0 es el humano). Por defecto, 1 contra 1: [0, 1]. */
   teams?: number[];
+  /** Facción de cada jugador (por defecto, todos mechas). */
+  factions?: Faction[];
   /** Ejército de prueba por jugador, además de la base inicial (0 = partida normal). */
   perSide?: number;
   armyType?: UnitType;
@@ -146,7 +148,7 @@ export function createGame(setup: GameSetup): State {
     tick: 0,
     rng,
     map,
-    players: teams.map((team) => ({ team, defeated: false, metal: START_METAL, instant: false, popCap: POP_CAP, noPower: false, revealMap: false, noFog: false, gen: 1 as const, techs: [] })),
+    players: teams.map((team, i) => ({ team, faction: setup.factions?.[i] ?? 'mechas', defeated: false, metal: START_METAL, instant: false, popCap: POP_CAP, noPower: false, revealMap: false, noFog: false, gen: 1 as const, techs: [] })),
     units: [],
     byId: new Map(),
     buildings: [],

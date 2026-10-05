@@ -52,7 +52,7 @@ python3 art/pack_atlas.py                           # → packages/client/public
 Voces de las unidades, avisos de la voz de mando, sonidos de los colosos y ambiente musical, generados con **ElevenLabs** (`art/audio_gen.py`; los textos y la voz de cada personaje están en ese archivo). La clave va en `.env` (`ELEVENLABS_API_KEY=...`, fuera de git).
 
 ```sh
-python3 art/audio_gen.py voces sfx efectos ambiente   # → packages/client/public/audio/ + manifest.json
+python3 art/audio_gen.py voces sfx efectos ambiente   # → packages/client/public/audio/ + manifest.json (voces "h_" = Huestes)
 ```
 
 Con el plan gratuito, la API de música no está disponible: la música son dos bucles de ambiente hechos con la API de efectos (`ambiente`). Con un plan de pago, `musica` genera una pieza completa. Licencia: el plan gratuito exige atribución y no permite uso comercial.

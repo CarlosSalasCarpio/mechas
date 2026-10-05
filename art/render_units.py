@@ -623,6 +623,303 @@ def pose_truck(J, anim, f):
     bpy.context.view_layer.update()
 
 
+# ------------------------------------------------------------------ Huestes
+
+def huestes_mats():
+    return {
+        'ivory': rb.painted('ivory', (0.86, 0.82, 0.72), scale=3.0, wear=0.25),
+        'gold': rb.flat('gold', (0.85, 0.6, 0.22), metallic=1.0, rough=0.3),
+        'dark': rb.painted('dark', (0.12, 0.13, 0.16), scale=3.0, wear=0.2),
+        'team': rb.flat('team', (0.0, 0.12, 1.0), rough=0.5),
+        'glow': rb.flat('glow', (1.0, 0.85, 0.45), emit=(1.0, 0.8, 0.4), strength=8.0),
+        'steel': rb.flat('steel', (0.7, 0.72, 0.75), metallic=0.9, rough=0.3),
+    }
+
+
+def halo(name, parent, loc, r, thick, mat, rot=(math.pi / 2, 0, 0)):
+    bpy.ops.mesh.primitive_torus_add(major_radius=r, minor_radius=thick, major_segments=48, minor_segments=8)
+    o = bpy.context.active_object
+    o.name = name
+    o.data.materials.append(mat)
+    o.parent = parent
+    o.location = loc
+    o.rotation_euler = rot
+    return o
+
+
+def build_angel():
+    """Ángel (art/concepts/h_soldier.png): guerrera de la orden, armadura marfil y oro, velo, aureola de luz,
+    túnica larga ENTERA del color del equipo y lanza-fusil. Escala de la infantería (como el soldado)."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    rb.TEAM.clear()
+    M = huestes_mats()
+    A, G, D, T = M['ivory'], M['gold'], M['dark'], M['team']
+    J = {}
+    J['root'] = joint('root', None, (0, 0, 0))
+    J['hips'] = joint('hips', J['root'], (0, 0, 1.0))
+    J['chest'] = joint('chest', J['hips'], (0, 0, 0.1))
+    J['neck'] = joint('neck', J['chest'], (0, 0, 0.62))
+    J['head'] = joint('head', J['neck'], (0, 0, 0.04))
+    tbox('pelvis', (0.34, 0.2), (0.32, 0.19), 0.2, D, J['hips'])
+    tbox('belt', (0.38, 0.24), (0.38, 0.24), 0.06, G, J['hips'], (0, 0, -0.01))
+    # Túnica cerrada (se ve el color del equipo desde cualquier lado), acampanada hasta los tobillos.
+    tbox('tunic', (0.4, 0.3), (0.56, 0.44), 0.95, T, J['hips'], (0, 0, -0.03))
+    tbox('tunic_trim', (0.43, 0.06), (0.43, 0.06), 0.04, G, J['hips'], (0, 0.12, -0.96))
+    tbox('torso', (0.32, 0.2), (0.44, 0.26), 0.55, D, J['chest'], (0, 0, 0.05), down=False)
+    tbox('cuirass', (0.3, 0.05), (0.42, 0.05), 0.4, A, J['chest'], (0, 0.13, 0.15), down=False)
+    tbox('cuirass_trim', (0.3, 0.055), (0.3, 0.055), 0.04, G, J['chest'], (0, 0.135, 0.14), down=False)
+    tbox('tabard_chest', (0.14, 0.02), (0.16, 0.02), 0.42, T, J['chest'], (0, 0.16, 0.12), down=False)
+    # Cabeza: casco liso con rendija de luz, capucha marfil y aureola detrás.
+    tbox('helmet', (0.22, 0.25), (0.2, 0.23), 0.27, D, J['head'], (0, 0.01, 0.02), down=False)
+    tbox('visor', (0.15, 0.02), (0.15, 0.02), 0.035, M['glow'], J['head'], (0, 0.13, 0.15), down=False)
+    tbox('hood', (0.3, 0.32), (0.18, 0.26), 0.36, A, J['head'], (0, -0.04, 0.0), down=False)
+    tbox('veil', (0.34, 0.08), (0.26, 0.06), 0.42, A, J['head'], (0, -0.17, -0.25), down=False)
+    halo('halo', J['head'], (0, -0.2, 0.25), 0.32, 0.025, M['glow'])
+    tbox('halo_device', (0.04, 0.04), (0.04, 0.04), 0.35, G, J['chest'], (0, -0.17, 0.35), down=False)
+    for sx in (-1, 1):
+        s_ = 'L' if sx > 0 else 'R'
+        J['sh' + s_] = joint('sh' + s_, J['chest'], (sx * 0.26, 0, 0.52))
+        tbox('pauldron', (0.19, 0.22), (0.17, 0.2), 0.14, A, J['sh' + s_], (sx * 0.03, 0, 0.07))
+        tbox('pauldron_trim', (0.195, 0.225), (0.195, 0.225), 0.03, G, J['sh' + s_], (sx * 0.03, 0, -0.01))
+        tbox('upperarm', (0.1, 0.11), (0.11, 0.12), 0.3, D, J['sh' + s_], (sx * 0.02, 0, -0.04))
+        J['el' + s_] = joint('el' + s_, J['sh' + s_], (sx * 0.02, 0, -0.34))
+        tbox('bracer', (0.11, 0.12), (0.13, 0.14), 0.28, A, J['el' + s_])
+        tbox('bracer_trim', (0.135, 0.145), (0.135, 0.145), 0.04, G, J['el' + s_], (0, 0, -0.03))
+        J['hand' + s_] = joint('hand' + s_, J['el' + s_], (0, 0, -0.3))
+        tbox('glove', (0.09, 0.1), (0.1, 0.1), 0.1, D, J['hand' + s_])
+        J['hip' + s_] = joint('hip' + s_, J['hips'], (sx * 0.09, 0, -0.08))
+        tbox('thigh', (0.13, 0.15), (0.16, 0.18), 0.42, D, J['hip' + s_])
+        J['knee' + s_] = joint('knee' + s_, J['hip' + s_], (0, 0, -0.44))
+        tbox('greave', (0.12, 0.14), (0.15, 0.17), 0.4, A, J['knee' + s_])
+        J['ankle' + s_] = joint('ankle' + s_, J['knee' + s_], (0, 0, -0.42))
+        tbox('boot', (0.14, 0.25), (0.12, 0.19), 0.11, G, J['ankle' + s_], (0, 0.04, 0.04))
+    # Lanza-fusil más alta que ella: asta, cámara de energía y hoja.
+    J['gun'] = joint('gun', J['handR'], (0, 0, -0.05))
+    tbox('shaft', (0.045, 1.6), (0.045, 1.6), 0.045, D, J['gun'], (0, 0.15, 0.02))
+    tbox('chamber', (0.08, 0.18), (0.08, 0.18), 0.08, G, J['gun'], (0, 0.45, 0.04))
+    tbox('chamber_glow', (0.085, 0.06), (0.085, 0.06), 0.06, M['glow'], J['gun'], (0, 0.45, 0.05))
+    blade = tbox('blade', (0.1, 0.02), (0.0, 0.02), 0.32, M['steel'], J['gun'], (0, 0.95, 0.02), down=False)
+    blade.rotation_euler = (-math.pi / 2, 0, 0)
+    J['root'].scale = (0.27, 0.27, 0.27)
+    return J
+
+
+LANCE_X = 0.65
+
+
+def pose_angel(J, anim, f):
+    pose(J, anim, f, 'rifle')
+    if anim != 'fire':
+        # Lanza en vertical, apoyada junto al cuerpo.
+        J['shR'].rotation_euler = (0.15, 0.1, 0)
+        J['elR'].rotation_euler = (0.9, 0, 0)
+        J['gun'].rotation_euler = (LANCE_X, 0, 0)
+        bpy.context.view_layer.update()
+
+
+def blade_wing(name, parent, n, length, spread, mat, glow):
+    """Ala de cuchillas: `n` hojas largas y finas en abanico desde la raíz (cada una con filo luminoso)."""
+    root = joint(name, parent, (0, 0, 0))
+    for k in range(n):
+        t = k / max(1, n - 1)
+        ang = -spread / 2 + spread * t
+        ln = length * (1.0 - 0.35 * abs(t - 0.35))
+        bm = bmesh.new()
+        w = 0.07 * (1.0 - 0.3 * t)
+        pts = [(0, -w), (ln * 0.85, -w * 0.6), (ln, 0), (ln * 0.85, w * 0.6), (0, w)]
+        vs = [bm.verts.new((x, y, 0)) for x, y in pts]
+        bm.faces.new(vs)
+        o = rb.mesh_obj('blade', bm, mat)
+        o.modifiers.new('s', 'SOLIDIFY').thickness = 0.03
+        o.parent = root
+        o.rotation_euler = (0, 0, ang)
+        e = tbox('edge', (0.02, 0.012), (0.02, 0.012), ln * 0.6, glow, root, (0, 0, 0), down=False)
+        e.rotation_euler = (0, math.pi / 2, ang)
+        e.location = (math.cos(ang) * ln * 0.38, math.sin(ang) * ln * 0.38, 0.02)
+    return root
+
+
+def build_seraph():
+    """Serafín (art/concepts/h_colossus.png): coloso-relicario esbelto de marfil y oro, túnica larga del color
+    del equipo, flota; seis alas de cuchillas (dos tapan el rostro, dos los pies, dos abiertas) y aureola."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    rb.TEAM.clear()
+    M = huestes_mats()
+    A, G, D, T = M['ivory'], M['gold'], M['dark'], M['team']
+    flame = rb.flat('flame', (1.0, 0.7, 0.25), emit=(1.0, 0.6, 0.2), strength=6.0)
+    J = {}
+    J['root'] = joint('root', None, (0, 0, 0))
+    J['hips'] = joint('hips', J['root'], (0, 0, 2.0))
+    J['chest'] = joint('chest', J['hips'], (0, 0, 0.1))
+    J['head'] = joint('head', J['chest'], (0, 0, 1.0))
+    # Túnica: tronco de pirámide largo hasta casi el suelo (flota).
+    tbox('robe', (0.5, 0.42), (1.0, 0.75), 1.85, T, J['hips'])
+    tbox('robe_trim', (1.01, 0.76), (1.01, 0.76), 0.06, G, J['hips'], (0, 0, -1.82))
+    tbox('robe_band', (0.12, 0.77), (0.17, 0.77), 1.8, G, J['hips'], (0, 0, -0.02))
+    tbox('waist', (0.42, 0.34), (0.5, 0.4), 0.2, G, J['chest'], (0, 0, 0.1))
+    tbox('torso', (0.48, 0.36), (0.78, 0.46), 0.8, A, J['chest'], (0, 0, 0.12), down=False)
+    tbox('chest_seal', (0.28, 0.04), (0.28, 0.04), 0.28, G, J['chest'], (0, 0.24, 0.5), down=False)
+    tbox('chest_glow', (0.12, 0.03), (0.12, 0.03), 0.12, M['glow'], J['chest'], (0, 0.26, 0.58), down=False)
+    tbox('neck', (0.16, 0.16), (0.16, 0.16), 0.14, D, J['chest'], (0, 0, 0.92), down=False)
+    tbox('head', (0.26, 0.28), (0.22, 0.24), 0.32, A, J['head'], (0, 0, 0.02), down=False)
+    tbox('face_light', (0.2, 0.02), (0.2, 0.02), 0.05, M['glow'], J['head'], (0, 0.15, 0.17), down=False)
+    halo('halo', J['head'], (0, -0.25, 0.42), 0.55, 0.05, flame)
+    for sx in (-1, 1):
+        s_ = 'L' if sx > 0 else 'R'
+        J['sh' + s_] = joint('sh' + s_, J['chest'], (sx * 0.48, 0, 0.82))
+        tbox('pauldron', (0.3, 0.34), (0.26, 0.3), 0.22, A, J['sh' + s_], (sx * 0.04, 0, 0.1))
+        tbox('pauldron_trim', (0.305, 0.345), (0.305, 0.345), 0.05, G, J['sh' + s_], (sx * 0.04, 0, -0.01))
+        tbox('arm', (0.13, 0.14), (0.16, 0.17), 0.85, A, J['sh' + s_], (sx * 0.03, 0, -0.05))
+        tbox('hand', (0.12, 0.12), (0.12, 0.12), 0.14, G, J['sh' + s_], (sx * 0.03, 0, -0.92))
+        # Alas (la orientación se fija en la pose): grandes a la espalda, del rostro y de los pies por delante.
+        for nm, loc, length, n, spread in (('wing_top', (sx * 0.3, -0.3, 0.85), 2.7, 7, 1.35), ('wing_face', (sx * 0.2, 0.25, 1.2), 0.8, 4, 0.45), ('wing_feet', (sx * 0.3, 0.5, -0.8), 1.3, 4, 0.5)):
+            r = joint(nm + s_, J['chest'], loc)
+            J[nm + s_] = r
+            blade_wing(nm + s_ + '_w', r, n, length, spread, G, flame)
+    return J
+
+
+def pose_seraph(J, anim, f):
+    n = ANIMS[anim]
+    p = 2 * math.pi * f / n
+    hz = 2.0
+    breathe = 0.0
+    face_open = 0.0
+    lean = 0.0
+    if anim == 'idle':
+        hz += 0.05 * math.sin(p)
+        breathe = 0.08 * math.sin(p)
+    elif anim == 'walk':
+        hz += 0.04 * math.sin(p * 2)
+        breathe = 0.12 * math.sin(p)
+        lean = 0.12
+    elif anim == 'fire':
+        face_open = [0.0, 0.6, 1.0, 0.5][f]
+    J['hips'].location = (0, 0, hz)
+    J['chest'].rotation_euler = (lean, 0, 0)
+    def wing(j, elev, sweep, sx):
+        # Abanico (plano XY, hacia +x) → plano vertical, elevado `elev` y barrido `sweep` (hacia atrás > 0);
+        # el ala derecha es la izquierda reflejada.
+        j.rotation_euler = (math.pi / 2, -elev, -sweep if sx > 0 else math.pi + sweep)
+
+    for sx in (-1, 1):
+        s_ = 'L' if sx > 0 else 'R'
+        wing(J['wing_top' + s_], 0.55 + breathe, 0.15, sx)
+        # Las del rostro apuntan hacia dentro y adelante (se cruzan); al atacar se abren hacia fuera.
+        wing(J['wing_face' + s_], 0.2, -(2.6 - face_open * 1.6), sx)
+        wing(J['wing_feet' + s_], -0.55 - breathe * 0.5, -2.5, sx)
+        J['sh' + s_].rotation_euler = (0.05 + (0.3 if anim == 'walk' else 0), sx * -0.15, 0)
+    bpy.context.view_layer.update()
+
+
+def build_cherub():
+    """Querubín (art/concepts/h_siege.png): relicario cuadrado de marfil y oro con cuatro máscaras (hombre,
+    león, buey, águila), alas de cuchillas en dosel con estandartes del equipo, dos anillos de ojos que
+    giran, cuatro patas largas y una espada de fuego montada como lanzador."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    rb.TEAM.clear()
+    M = huestes_mats()
+    A, G, D, T = M['ivory'], M['gold'], M['dark'], M['team']
+    flame = rb.flat('flame', (1.0, 0.7, 0.25), emit=(1.0, 0.6, 0.2), strength=6.0)
+    eye = rb.flat('eye', (1.0, 0.9, 0.5), emit=(1.0, 0.85, 0.4), strength=6.0)
+    J = {}
+    J['root'] = joint('root', None, (0, 0, 0))
+    J['hips'] = joint('hips', J['root'], (0, 0, 2.45))
+    J['chest'] = joint('chest', J['hips'], (0, 0, 0))
+    S = 0.95
+    tbox('shrine', (S, S), (S, S), S, A, J['chest'], (0, 0, -0.1), down=False)
+    tbox('shrine_base', (S + 0.1, S + 0.1), (S + 0.06, S + 0.06), 0.1, G, J['chest'], (0, 0, -0.1))
+    tbox('shrine_cap', (S + 0.08, S + 0.08), (S * 0.6, S * 0.6), 0.22, G, J['chest'], (0, 0, S - 0.1), down=False)
+    for k in range(4):
+        # Aristas doradas verticales.
+        cx, cy = [(1, 1), (-1, 1), (-1, -1), (1, -1)][k]
+        tbox('edge', (0.08, 0.08), (0.08, 0.08), S, G, J['chest'], (cx * S / 2, cy * S / 2, -0.1), down=False)
+        # Máscara en cada cara: óvalo dorado con relieve (frente, nariz y boca simplificados).
+        ang = k * math.pi / 2
+        m = joint('mask', J['chest'], (0, 0, S * 0.4))
+        m.rotation_euler = (0, 0, ang)
+        tbox('mask_plate', (0.5, 0.05), (0.42, 0.05), 0.6, G, m, (0, S / 2 + 0.02, -0.3), down=False)
+        tbox('mask_brow', (0.4, 0.07), (0.4, 0.07), 0.08, G, m, (0, S / 2 + 0.05, 0.1), down=False)
+        tbox('mask_nose', (0.08, 0.1), (0.06, 0.06), 0.22, G, m, (0, S / 2 + 0.07, -0.1), down=False)
+        if k == 1:  # león: melena
+            tbox('mane', (0.75, 0.04), (0.6, 0.04), 0.8, D, m, (0, S / 2 + 0.005, -0.4), down=False)
+        if k == 3:  # águila: pico
+            tbox('beak', (0.1, 0.18), (0.02, 0.04), 0.2, D, m, (0, S / 2 + 0.12, -0.18), down=False)
+    # Dosel de alas de cuchillas con estandartes del equipo.
+    for k in range(4):
+        r = joint('canopy', J['chest'], (0, 0, S + 0.05))
+        r.rotation_euler = (0, 0, math.pi / 4 + k * math.pi / 2)
+        arc = joint('arc', r, (0.2, 0, 0))
+        arc.rotation_euler = (0, -0.6, 0)
+        w = blade_wing('canopy_w', arc, 4, 1.9, 0.35, G, flame)
+        ban = tbox('banner', (0.24, 0.02), (0.2, 0.02), 0.7, T, r, (0.95, 0, 0.35))
+        ban.rotation_euler = (0, 0, math.pi / 2)
+    # Anillos de ojos.
+    for k, tilt in enumerate((0.45, -0.55)):
+        ring = joint('ring%d' % k, J['chest'], (0, 0, S * 0.35))
+        ring.rotation_euler = (tilt, 0.3 * k, 0)
+        halo('eyering', ring, (0, 0, 0), 0.95 + 0.12 * k, 0.045, G, rot=(0, 0, 0))
+        for e in range(12):
+            a = e * math.pi / 6
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=0.05, location=(math.cos(a) * (0.95 + 0.12 * k), math.sin(a) * (0.95 + 0.12 * k), 0.04), segments=8, ring_count=4)
+            o = bpy.context.active_object
+            o.data.materials.append(eye)
+            o.parent = ring
+        J['ring%d' % k] = ring
+    # Espada de fuego sobre el relicario.
+    J['gun'] = joint('gun', J['chest'], (0, 0, S + 0.15))
+    tbox('hilt', (0.12, 0.12), (0.12, 0.12), 0.3, G, J['gun'], down=False)
+    tbox('guard', (0.5, 0.1), (0.5, 0.1), 0.08, G, J['gun'], (0, 0, 0.3), down=False)
+    tbox('sword', (0.14, 0.04), (0.02, 0.02), 1.3, flame, J['gun'], (0, 0, 0.38), down=False)
+    # Patas largas y finas, como las del Mosquito.
+    legs = {'FL': (0.45, 0.45, 45), 'FR': (-0.45, 0.45, 135), 'BL': (0.45, -0.45, -45), 'BR': (-0.45, -0.45, -135)}
+    for k, (lx, ly, yaw) in legs.items():
+        frame = joint('frame' + k, J['chest'], (lx, ly, -0.15))
+        frame.rotation_euler = (0, 0, math.radians(yaw))
+        J['hip' + k] = joint('hip' + k, frame, (0, 0, 0))
+        knee = Vector((0.75, 0, 0.6))
+        foot = Vector((1.5, 0, -2.3))
+        o = rb.strut('femur', (0, 0, 0), tuple(knee), 0.06, G, 8)
+        o.parent = J['hip' + k]
+        J['knee' + k] = joint('knee' + k, J['hip' + k], tuple(knee))
+        tbox('kneejoint', (0.14, 0.14), (0.14, 0.14), 0.14, A, J['knee' + k], (0, 0, 0.07))
+        o = rb.strut('shin', (0, 0, 0), tuple(foot - knee), 0.05, G, 8)
+        o.parent = J['knee' + k]
+        tbox('foot', (0.1, 0.1), (0.05, 0.05), 0.1, D, J['knee' + k], tuple(foot - knee + Vector((0, 0, 0.1))))
+    return J
+
+
+def pose_cherub(J, anim, f):
+    n = ANIMS[anim]
+    p = 2 * math.pi * f / n
+    for k in ('FL', 'FR', 'BL', 'BR'):
+        J['hip' + k].rotation_euler = (0, 0, 0)
+        J['knee' + k].rotation_euler = (0, 0, 0)
+    hz = 2.45
+    J['gun'].rotation_euler = (0, 0, 0)
+    J['chest'].rotation_euler = (0, 0, 0)
+    # Los anillos de ojos giran siempre.
+    spin = 2 * math.pi * f / n
+    J['ring0'].rotation_euler = (0.45, 0, spin * 0.5)
+    J['ring1'].rotation_euler = (-0.55, 0.3, -spin * 0.5)
+    if anim == 'idle':
+        hz += 0.03 * math.sin(p)
+    elif anim == 'walk':
+        for k, ph in (('FL', 0), ('BR', 0), ('FR', math.pi), ('BL', math.pi)):
+            s_ = math.sin(p + ph)
+            lift = max(0.0, math.cos(p + ph))
+            J['hip' + k].rotation_euler = (0, -0.16 * lift, 0.2 * s_)
+            J['knee' + k].rotation_euler = (0, 0.1 * lift, 0)
+        hz += 0.05 * abs(math.sin(p))
+    elif anim == 'fire':
+        # La espada se inclina hacia atrás y descarga hacia delante.
+        swing = [-0.6, -0.8, 0.7, 0.3][f]
+        J['gun'].rotation_euler = (swing, 0, 0)
+        J['chest'].rotation_euler = (0.06 * (1 if f == 2 else 0), 0, 0)
+    J['hips'].location = (0, 0, hz)
+    bpy.context.view_layer.update()
+
+
 # ------------------------------------------------------------------ render
 
 def ground_dir(d):
@@ -761,6 +1058,9 @@ SPECS = {
     'soldier': {'build': lambda: build_human('soldier'), 'pose': pose_soldier, 'frame': 1.1, 'cz': 0.3},
     'worker': {'build': lambda: build_human('worker'), 'pose': pose_worker, 'frame': 1.0, 'cz': 0.26},
     'truck': {'build': build_truck, 'pose': pose_truck, 'frame': 2.2, 'cz': 0.65},
+    'h_soldier': {'build': build_angel, 'pose': pose_angel, 'frame': 1.4, 'cz': 0.35},
+    'h_colossus': {'build': build_seraph, 'pose': pose_seraph, 'frame': 8.0, 'cz': 2.4, 'scale': 0.65},
+    'h_siege': {'build': build_cherub, 'pose': pose_cherub, 'frame': 7.2, 'cz': 2.0, 'scale': 0.7},
     'siege': {'build': build_mosquito, 'pose': pose_mosquito, 'frame': 7.2, 'cz': 1.9, 'scale': 0.7},
 }
 which = [a for a in ARGS if a in SPECS] or ['mech', 'artillery']

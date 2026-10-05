@@ -28,19 +28,42 @@ import {
   type Command,
   type Unit,
   type UnitType,
+  type Faction,
   coverOf,
   linkOf,
 } from '@epocas/sim';
-import { assignPlayerColors, BUILDING_NAMES, GameView, isoX, isoY, loadDecor, loadTerrainTextures, loadUnitArt, prewarmTextures, loadFx, fxAll, screenToWorld, UNIT_BOX, type Pos } from '@epocas/render';
+import { assignPlayerColors, BUILDING_NAMES, GameView, PLAYER_COLORS, isoX, isoY, loadDecor, loadTerrainTextures, loadUnitArt, prewarmTextures, loadFx, fxAll, screenToWorld, UNIT_BOX, type Pos } from '@epocas/render';
 import { Sfx, Voices } from './audio';
 import { Minimap } from './minimap';
+import { COLOR_CHOICES, FACTION_NAMES } from './names';
 
 const PLAYER = 0;
 const params = new URLSearchParams(location.search);
 const seed = Number(params.get('seed') ?? 42);
 const perSide = Number(params.get('n') ?? 0);
 const mode = params.get('mode') && MODES[params.get('mode')!] ? params.get('mode')! : '1v1';
-const teams = MODES[mode];
+/**
+ * Jugadores del lobby: `p=m.0.1,h.1.2,…` → facción (m mechas, h huestes), color (índice de COLOR_CHOICES) y
+ * equipo (0 = sin equipo: todos contra todos). Sin `p`, los modos rápidos de siempre (todos mechas).
+ */
+interface Slot {
+  faction: Faction;
+  color: number;
+  team: number;
+}
+function parseSlots(raw: string | null): Slot[] | null {
+  if (!raw) return null;
+  const out = raw.split(',').map((x) => {
+    const [f, c, t] = x.split('.');
+    return { faction: (f === 'h' ? 'huestes' : 'mechas') as Faction, color: Math.max(0, Math.min(COLOR_CHOICES.length - 1, Number(c) || 0)), team: Math.max(0, Math.min(6, Number(t) || 0)) };
+  });
+  return out.length >= 2 && out.length <= 6 ? out : null;
+}
+const slots = parseSlots(params.get('p'));
+// Equipo 0 = sin equipo: cada uno el suyo (ids altos para no chocar con los equipos 1–6).
+const teams = slots ? slots.map((x, i) => (x.team === 0 ? 100 + i : x.team)) : MODES[mode];
+const factions: Faction[] = slots ? slots.map((x) => x.faction) : teams.map(() => 'mechas');
+const slotsParam = params.get('p') ?? '';
 const aiOn = params.get('ai') !== '0';
 /** Sin parámetros de partida se muestra el menú principal (con una partida quieta de fondo). */
 const inGame = params.has('play') || params.has('load') || params.has('n');
@@ -69,8 +92,15 @@ const TECH_INFO: Record<TechId, [string, string]> = {
 };
 const BUILDABLE: BuildingType[] = ['depot', 'barracks', 'hangar', 'cradle', 'tower', 'plant', 'relay'];
 
-const st = createGame({ seed, perSide, teams });
-assignPlayerColors(teams, PLAYER);
+const st = createGame({ seed, perSide, teams, factions });
+if (slots) PLAYER_COLORS.splice(0, PLAYER_COLORS.length, ...slots.map((x) => COLOR_CHOICES[x.color].hex));
+else assignPlayerColors(teams, PLAYER);
+// Nombres de la facción del jugador en toda la interfaz.
+const FN = FACTION_NAMES[factions[PLAYER]];
+Object.assign(UNIT_NAMES, FN.units);
+Object.assign(BUILDING_NAMES, FN.buildings);
+Object.assign(TECH_INFO, FN.techs);
+GEN_NAMES.splice(0, GEN_NAMES.length, ...FN.gens);
 const app = new Application();
 await app.init({ resizeTo: window, background: '#14170f', antialias: true });
 document.body.prepend(app.canvas);
@@ -97,7 +127,11 @@ const sfx = new Sfx();
 // El audio del navegador solo arranca tras un gesto del usuario.
 const voices = new Voices();
 (window as unknown as { __voices: Voices }).__voices = voices;
-sfx.samples = (name) => voices.effect(name);
+sfx.samples = (name, prefix) => voices.effect(name, prefix);
+voices.prefix = factions[PLAYER] === 'huestes' ? 'h_' : '';
+/** Prefijo de sonido de un jugador (efectos de su facción). */
+const sfxPrefix = (p: number) => (st.players[p]?.faction === 'huestes' ? 'h_' : '');
+sfx.prefix = sfxPrefix(PLAYER);
 const unlockAudio = () => {
   sfx.unlock();
   if (sfx.context) void voices.init(sfx.context, sfx.context.destination);
@@ -417,6 +451,8 @@ function playFx(): void {
   const h = app.screen.height;
   for (const f of st.fx) {
     const mine = f.owner === PLAYER;
+    // Cada efecto suena con el estilo de la facción de quien lo produce.
+    sfx.prefix = sfxPrefix(f.owner);
     if (f.kind === 'shot' && !mine && hostile(st, f.owner, PLAYER)) {
       const victim = st.byId.get(f.target) ?? st.buildingsById.get(f.target);
       if (victim?.owner === PLAYER) voices.announce('attacked', 25000);
@@ -500,6 +536,7 @@ function playFx(): void {
         break;
     }
   }
+  sfx.prefix = sfxPrefix(PLAYER);
 }
 addEventListener('pointermove', (e) => {
   mouse = { x: e.clientX, y: e.clientY };
@@ -796,7 +833,7 @@ function currentActions(): Action[] {
         icon: ICONS.building,
         img: `portrait_${t}`,
         label: BUILDING_NAMES[t],
-        sub: locked ? `Requiere Gen-${needGen}` : `${s.cost} metal`,
+        sub: locked ? `Requiere ${FN.genTag(needGen)}` : `${s.cost} metal`,
         enabled: !locked && metal >= s.cost,
         run: () => {
           placing = t;
@@ -811,9 +848,9 @@ function currentActions(): Action[] {
       out.push({
         group: 'unit',
         icon: ICONS[unit],
-        img: `portrait_${unit}`,
+        img: unitPortrait(unit),
         label: `${cap(UNIT_NAMES[unit][0])}${bs.length > 1 ? ` ×${bs.length}` : ''}`,
-        sub: locked ? `Requiere Gen-${UNIT_GEN[unit]}` : `${u.cost} metal c/u · ${u.trainTime / 20} s · Shift: 5`,
+        sub: locked ? `Requiere ${FN.genTag(UNIT_GEN[unit])}` : `${u.cost} metal c/u · ${u.trainTime / 20} s · Shift: 5`,
         enabled: !locked && metal >= u.cost && bs.some((b) => b.queue.length < 10),
         run: (shift) => {
           // Una por edificio (cinco con Shift), primero los de cola más corta, hasta donde alcance el metal.
@@ -840,7 +877,7 @@ function currentActions(): Action[] {
       if ((tech === 'gen3' && pl.gen < 2) || st.buildings.some((b) => b.owner === PLAYER && b.research?.tech === tech)) continue;
       const missing = t.requires.filter((r) => !st.buildings.some((b) => b.owner === PLAYER && b.type === r && b.complete));
       const free = bs.find((b) => !b.research);
-      const why = t.gen > pl.gen ? `Requiere Gen-${t.gen}` : missing.length ? `Requiere ${missing.map((r) => BUILDING_NAMES[r].toLowerCase()).join(' y ')}` : !free ? 'Edificio ocupado' : `${t.cost} metal · ${t.time / 20} s`;
+      const why = t.gen > pl.gen ? `Requiere ${FN.genTag(t.gen)}` : missing.length ? `Requiere ${missing.map((r) => BUILDING_NAMES[r].toLowerCase()).join(' y ')}` : !free ? 'Edificio ocupado' : `${t.cost} metal · ${t.time / 20} s`;
       out.push({
         group: tech === 'gen2' || tech === 'gen3' ? 'gen' : 'tech',
         icon: tech === 'gen2' || tech === 'gen3' ? ICONS.gen : ICONS.tech,
@@ -923,6 +960,12 @@ function renderPanel(): void {
   }
 }
 
+/** Unidades con arte propio de las Huestes (y por tanto retrato propio). */
+const HUESTES_ART = new Set<UnitType>(['soldier', 'colossus', 'siege']);
+function unitPortrait(t: UnitType, owner = PLAYER): string {
+  return st.players[owner]?.faction === 'huestes' && HUESTES_ART.has(t) ? `portrait_h_${t}` : `portrait_${t}`;
+}
+
 /** Icono + valor (+ detalle) para la fila de estadísticas. */
 function stat(icon: string, value: string, extra = '', title = ''): string {
   return `<span class="stat" title="${title}"><img src="ui/icon_${icon}.png" alt="" />${value}${extra ? ` <em>${extra}</em>` : ''}</span>`;
@@ -961,13 +1004,13 @@ function selectionHtml(us: Unit[], bs: Building[], b: Building | undefined): str
       else notes.push('<span class="note ok">Conectado a la red</span>');
     }
     if (u.type === 'truck') notes.push(`<span class="note${u.deployState === 2 ? (u.nodePowered ? ' ok' : ' warn') : ''}">${u.deployState === 2 ? (u.nodePowered ? 'Desplegado · enlazado' : 'Desplegado · SIN ENLACE') : u.deployState === 1 ? 'Desplegando…' : 'En marcha'}</span>`);
-    return `<div class="portrait"><img src="ui/portrait_${u.type}.png" alt="" /></div><div class="selInfo"><div class="selName">${UNIT_NAMES[u.type][0]}</div>${hpBar(u.hp, u.maxHp)}${unitStats(u.type)}${notes.join('')}</div>`;
+    return `<div class="portrait"><img src="ui/${unitPortrait(u.type, u.owner)}.png" alt="" /></div><div class="selInfo"><div class="selName">${UNIT_NAMES[u.type][0]}</div>${hpBar(u.hp, u.maxHp)}${unitStats(u.type)}${notes.join('')}</div>`;
   }
   if (us.length > 1) {
     // Varias unidades: rejilla de miniaturas (clic: solo esa; Mayús + clic: quitarla).
     const minis = us
       .slice(0, 40)
-      .map((u) => `<button class="mini" data-id="${u.id}" title="${UNIT_NAMES[u.type][0]}"><img src="ui/portrait_${u.type}.png" alt="" /><i><b style="width:${Math.max(0, (100 * u.hp) / u.maxHp).toFixed(0)}%;background:${u.hp / u.maxHp < 0.3 ? '#ef4444' : u.hp / u.maxHp < 0.6 ? '#facc15' : '#7dffb0'}"></b></i></button>`)
+      .map((u) => `<button class="mini" data-id="${u.id}" title="${UNIT_NAMES[u.type][0]}"><img src="ui/${unitPortrait(u.type, u.owner)}.png" alt="" /><i><b style="width:${Math.max(0, (100 * u.hp) / u.maxHp).toFixed(0)}%;background:${u.hp / u.maxHp < 0.3 ? '#ef4444' : u.hp / u.maxHp < 0.6 ? '#facc15' : '#7dffb0'}"></b></i></button>`)
       .join('');
     const counts = new Map<UnitType, number>();
     for (const u of us) counts.set(u.type, (counts.get(u.type) ?? 0) + 1);
@@ -1007,7 +1050,7 @@ const knownDefeated = new Set<number>();
 setInterval(() => {
   $('metal').textContent = String(st.players[PLAYER].metal);
   $('pop').textContent = `${popUsed(st, PLAYER)} / ${st.players[PLAYER].popCap}`;
-  $('gen').textContent = `Gen-${st.players[PLAYER].gen} · ${GEN_NAMES[st.players[PLAYER].gen]}`;
+  $('gen').textContent = `${FN.genTag(st.players[PLAYER].gen)} · ${GEN_NAMES[st.players[PLAYER].gen]}`;
   const emblem = $('genEmblem') as HTMLImageElement;
   if (!emblem.src.endsWith(`gen${st.players[PLAYER].gen}.png`)) emblem.src = `ui/gen${st.players[PLAYER].gen}.png`;
   $('debug').textContent = `${app.ticker.FPS.toFixed(0)} fps · sim ${simMs.toFixed(1)} ms · dibujo ${renderMs.toFixed(1)} ms · ${st.units.length} unid. · tick ${st.tick}${paused ? ' · PAUSA' : ''}`;
@@ -1035,11 +1078,11 @@ setInterval(() => {
   const last = st.events[st.events.length - 1];
   if (last && last !== lastEvent) {
     if (last.kind === 'generation') {
-      alertBox.textContent = last.player === PLAYER ? `Has alcanzado la GEN-${last.gen} · ${GEN_NAMES[last.gen]}` : `${who(last.player)} ha alcanzado la GEN-${last.gen} · ${GEN_NAMES[last.gen]}`;
+      alertBox.textContent = last.player === PLAYER ? `Has alcanzado ${FN.genTag(last.gen)} · ${GEN_NAMES[last.gen]}` : `${who(last.player)} ha alcanzado ${FACTION_NAMES[st.players[last.player].faction].genTag(last.gen)}`;
       sfx.play(last.player === PLAYER ? 'genUp' : 'alert');
       if (last.player === PLAYER) voices.announce('generation', 0);
     } else {
-      alertBox.textContent = last.player === PLAYER ? 'Tu Cuna ha empezado a construir un COLOSO' : hostile(st, last.player, PLAYER) ? `ALERTA · ${who(last.player)} está construyendo un COLOSO` : `${who(last.player)} está construyendo un COLOSO`;
+      alertBox.textContent = last.player === PLAYER ? `Tu ${BUILDING_NAMES.cradle} ha empezado a forjar un ${UNIT_NAMES.colossus[0].toUpperCase()}` : hostile(st, last.player, PLAYER) ? `ALERTA · ${who(last.player)} está forjando un ${FACTION_NAMES[st.players[last.player].faction].units.colossus[0].toUpperCase()}` : `${who(last.player)} está forjando un ${FACTION_NAMES[st.players[last.player].faction].units.colossus[0].toUpperCase()}`;
       sfx.play('alert');
       if (hostile(st, last.player, PLAYER)) voices.announce('enemycolossus', 0);
     }
@@ -1051,7 +1094,7 @@ setInterval(() => {
 }, 150);
 
 $('replay').addEventListener('click', () => {
-  const data = { version: 2, seed, perSide, mode, commands: log, finalTick: st.tick, finalHash: hashState(st) };
+  const data = { version: 3, seed, perSide, mode, players: slotsParam, commands: log, finalTick: st.tick, finalHash: hashState(st) };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
   a.download = `replay-seed${seed}-t${st.tick}.json`;
@@ -1145,7 +1188,7 @@ loadFile.addEventListener('change', async () => {
   const file = loadFile.files?.[0];
   if (!file) return;
   const text = await file.text();
-  const r = JSON.parse(text) as { seed: number; perSide: number; mode?: string };
+  const r = JSON.parse(text) as { seed: number; perSide: number; mode?: string; players?: string };
   try {
     sessionStorage.setItem('replay', text);
   } catch {
@@ -1156,6 +1199,7 @@ loadFile.addEventListener('change', async () => {
   q.set('seed', String(r.seed));
   q.set('n', String(r.perSide ?? 0));
   q.set('mode', r.mode ?? '1v1');
+  if (r.players) q.set('p', r.players);
   q.set('load', '1');
   location.search = q.toString();
 });
@@ -1288,7 +1332,7 @@ function renderQueue(bs: Building[]): void {
         el.className = 'qitem';
         el.dataset.unit = t;
         el.title = `${UNIT_NAMES[t][n === 1 ? 0 : 1]} · clic: cancelar una (se devuelve el metal)`;
-        el.innerHTML = `<img src="ui/portrait_${t}.png" alt="" />${n > 1 ? `<span>${n}</span>` : ''}<i><b></b></i>`;
+        el.innerHTML = `<img src="ui/${unitPortrait(t)}.png" alt="" />${n > 1 ? `<span>${n}</span>` : ''}<i><b></b></i>`;
         el.addEventListener('click', () => {
           // Cancela en el edificio con más unidades de ese tipo en cola.
           const b = bs
@@ -1355,26 +1399,84 @@ $('fullscreen').addEventListener('click', (e) => {
 
 // ------------------------------------------------------------ menú principal
 const menu = $('menu');
-let menuMode = mode;
-function renderModes(): void {
-  $('modes').replaceChildren(
-    ...Object.keys(MODES).map((m) => {
-      const b = document.createElement('button');
-      b.textContent = m;
-      b.className = m === menuMode ? 'on' : '';
-      b.addEventListener('click', () => {
-        menuMode = m;
-        renderModes();
-      });
-      return b;
-    }),
-  );
+// Lobby: una fila por jugador (el primero eres tú), como en AoE2.
+const LOBBY_KEY = 'mechas.lobby';
+function defaultLobby(): Slot[] {
+  return [
+    { faction: 'mechas', color: 0, team: 1 },
+    { faction: 'huestes', color: 1, team: 2 },
+  ];
 }
-renderModes();
+let lobby: Slot[] = slots ?? defaultLobby();
+if (!slots) {
+  try {
+    lobby = parseSlots(localStorage.getItem(LOBBY_KEY)) ?? lobby;
+  } catch {
+    /* sin almacenamiento */
+  }
+}
+const encodeSlots = (ls: Slot[]) => ls.map((x) => `${x.faction === 'huestes' ? 'h' : 'm'}.${x.color}.${x.team}`).join(',');
+function renderLobby(): void {
+  const rows = lobby.map((x, i) => {
+    const row = document.createElement('div');
+    row.className = 'slot';
+    const sel = (opts: [string, string][], value: string, on: (v: string) => void) => {
+      const el = document.createElement('select');
+      for (const [v, label] of opts) el.add(new Option(label, v, false, v === value));
+      el.addEventListener('change', () => {
+        on(el.value);
+        renderLobby();
+      });
+      return el;
+    };
+    const who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = i === 0 ? 'Tú' : `IA ${i}`;
+    const faction = sel([['mechas', FACTION_NAMES.mechas.name], ['huestes', FACTION_NAMES.huestes.name]], x.faction, (v) => (x.faction = v as Faction));
+    const swatch = document.createElement('span');
+    swatch.className = 'swatch';
+    const chip = document.createElement('i');
+    chip.style.background = `#${COLOR_CHOICES[x.color].hex.toString(16).padStart(6, '0')}`;
+    swatch.append(chip, sel(COLOR_CHOICES.map((c, k) => [String(k), c.name]), String(x.color), (v) => (x.color = Number(v))));
+    const team = sel([['0', '—'], ['1', 'Equipo 1'], ['2', 'Equipo 2'], ['3', 'Equipo 3'], ['4', 'Equipo 4']], String(x.team), (v) => (x.team = Number(v)));
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.title = 'Quitar';
+    del.disabled = i === 0 || lobby.length <= 2;
+    del.addEventListener('click', () => {
+      lobby.splice(i, 1);
+      renderLobby();
+    });
+    row.append(who, faction, swatch, team, del);
+    return row;
+  });
+  $('lobby').replaceChildren(...rows);
+  ($('addAi') as HTMLButtonElement).disabled = lobby.length >= 6;
+}
+$('addAi').addEventListener('click', () => {
+  if (lobby.length >= 6) return;
+  // Primer color libre y, por defecto, en el equipo contrario al tuyo.
+  const used = new Set(lobby.map((x) => x.color));
+  const color = COLOR_CHOICES.findIndex((_, k) => !used.has(k));
+  lobby.push({ faction: 'mechas', color: color < 0 ? 0 : color, team: lobby[0].team === 2 ? 1 : 2 });
+  renderLobby();
+});
+renderLobby();
 $('newGame').addEventListener('click', () => {
+  // Tiene que haber al menos un enemigo.
+  const teamOf = (x: Slot, i: number) => (x.team === 0 ? 100 + i : x.team);
+  if (lobby.every((x, i) => teamOf(x, i) === teamOf(lobby[0], 0))) {
+    alert('Todos están en tu equipo: pon al menos un enemigo.');
+    return;
+  }
+  try {
+    localStorage.setItem(LOBBY_KEY, encodeSlots(lobby));
+  } catch {
+    /* sin almacenamiento */
+  }
   const s = ($('seedInput') as HTMLInputElement).value.trim();
   const q = new URLSearchParams();
-  q.set('mode', menuMode);
+  q.set('p', encodeSlots(lobby));
   q.set('seed', s && /^[0-9]+$/.test(s) ? s : String(Math.floor(Math.random() * 1e9)));
   q.set('play', '1');
   location.search = q.toString();
@@ -1387,7 +1489,12 @@ $('toMenu').addEventListener('click', () => {
 if (!inGame) {
   menu.style.display = 'flex';
   paused = true;
-} else $('modeTag').textContent = mode;
+} else {
+  // Resumen de la partida: tamaño de cada equipo (2v2, 1v1v1...).
+  const sizes = new Map<number, number>();
+  for (const t of teams) sizes.set(t, (sizes.get(t) ?? 0) + 1);
+  $('modeTag').textContent = slots ? [...sizes.values()].join('v') : mode;
+}
 
 // Si la GPU se queda sin memoria o el sistema reinicia el contexto gráfico, avisarlo en vez de congelarse sin más.
 app.canvas.addEventListener('webglcontextlost', (e) => {

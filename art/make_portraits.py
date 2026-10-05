@@ -30,3 +30,10 @@ for u in ('worker', 'soldier'):
         make(u, hi, hi.replace('.png', '_team.png'), 75)
 for u, top in ( ('mech', 55), ('artillery', 60), ('truck', None), ('colossus', 55), ('siege', None)):
     make(u, os.path.join(ROOT, 'units', u, f'{u}_idle_1_0.png'), os.path.join(ROOT, 'units', u, f'{u}_idle_1_0_team.png'), top)
+for u, top in (('h_soldier', 75), ('h_colossus', 60), ('h_siege', None)):
+    body = os.path.join(ROOT, 'units', u, f'{u}_idle_1_0.png')
+    hi = os.path.join(ROOT, 'units', f'{u}_hi', f'{u}_hi_idle_1_0.png')
+    if os.path.exists(hi):
+        body = hi
+    if os.path.exists(body):
+        make(u, body, body.replace('.png', '_team.png'), top)

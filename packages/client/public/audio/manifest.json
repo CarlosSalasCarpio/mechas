@@ -155,8 +155,9 @@
   ]
  },
  "music": [
-  "ambient_choir",
-  "ambient_war"
+  "ambient_hymn1",
+  "ambient_hymn2",
+  "ambient_hymn3"
  ],
  "sfx": {
   "shotSoldier": [
@@ -239,6 +240,239 @@
   ],
   "defeat": [
    "sfx_defeat"
+  ]
+ },
+ "h_worker": {
+  "select": [
+   "vo_h_worker_select_0",
+   "vo_h_worker_select_1",
+   "vo_h_worker_select_2",
+   "vo_h_worker_select_3"
+  ],
+  "move": [
+   "vo_h_worker_move_0",
+   "vo_h_worker_move_1"
+  ],
+  "build": [
+   "vo_h_worker_build_0",
+   "vo_h_worker_build_1",
+   "vo_h_worker_build_2"
+  ],
+  "gather": [
+   "vo_h_worker_gather_0",
+   "vo_h_worker_gather_1"
+  ]
+ },
+ "h_soldier": {
+  "select": [
+   "vo_h_soldier_select_0",
+   "vo_h_soldier_select_1",
+   "vo_h_soldier_select_2",
+   "vo_h_soldier_select_3"
+  ],
+  "move": [
+   "vo_h_soldier_move_0",
+   "vo_h_soldier_move_1",
+   "vo_h_soldier_move_2"
+  ],
+  "attack": [
+   "vo_h_soldier_attack_0",
+   "vo_h_soldier_attack_1",
+   "vo_h_soldier_attack_2"
+  ]
+ },
+ "h_mech": {
+  "select": [
+   "vo_h_mech_select_0",
+   "vo_h_mech_select_1",
+   "vo_h_mech_select_2"
+  ],
+  "move": [
+   "vo_h_mech_move_0",
+   "vo_h_mech_move_1",
+   "vo_h_mech_move_2"
+  ],
+  "attack": [
+   "vo_h_mech_attack_0",
+   "vo_h_mech_attack_1",
+   "vo_h_mech_attack_2"
+  ]
+ },
+ "h_artillery": {
+  "select": [
+   "vo_h_artillery_select_0",
+   "vo_h_artillery_select_1",
+   "vo_h_artillery_select_2"
+  ],
+  "move": [
+   "vo_h_artillery_move_0",
+   "vo_h_artillery_move_1"
+  ],
+  "attack": [
+   "vo_h_artillery_attack_0",
+   "vo_h_artillery_attack_1",
+   "vo_h_artillery_attack_2"
+  ]
+ },
+ "h_truck": {
+  "select": [
+   "vo_h_truck_select_0",
+   "vo_h_truck_select_1",
+   "vo_h_truck_select_2"
+  ],
+  "move": [
+   "vo_h_truck_move_0",
+   "vo_h_truck_move_1"
+  ],
+  "deploy": [
+   "vo_h_truck_deploy_0",
+   "vo_h_truck_deploy_1"
+  ],
+  "undeploy": [
+   "vo_h_truck_undeploy_0"
+  ]
+ },
+ "h_colossus": {
+  "select": [
+   "vo_h_colossus_select_0",
+   "vo_h_colossus_select_1",
+   "vo_h_colossus_select_2"
+  ],
+  "move": [
+   "vo_h_colossus_move_0",
+   "vo_h_colossus_move_1"
+  ],
+  "attack": [
+   "vo_h_colossus_attack_0",
+   "vo_h_colossus_attack_1",
+   "vo_h_colossus_attack_2"
+  ]
+ },
+ "h_siege": {
+  "select": [
+   "vo_h_siege_select_0",
+   "vo_h_siege_select_1",
+   "vo_h_siege_select_2"
+  ],
+  "move": [
+   "vo_h_siege_move_0",
+   "vo_h_siege_move_1"
+  ],
+  "attack": [
+   "vo_h_siege_attack_0",
+   "vo_h_siege_attack_1",
+   "vo_h_siege_attack_2"
+  ]
+ },
+ "h_announcer": {
+  "built": [
+   "vo_h_announcer_built_0"
+  ],
+  "trained": [
+   "vo_h_announcer_trained_0"
+  ],
+  "attacked": [
+   "vo_h_announcer_attacked_0",
+   "vo_h_announcer_attacked_1"
+  ],
+  "powerlost": [
+   "vo_h_announcer_powerlost_0"
+  ],
+  "generation": [
+   "vo_h_announcer_generation_0"
+  ],
+  "enemycolossus": [
+   "vo_h_announcer_enemycolossus_0"
+  ],
+  "colossus": [
+   "vo_h_announcer_colossus_0"
+  ],
+  "reactor": [
+   "vo_h_announcer_reactor_0"
+  ],
+  "enemydefeated": [
+   "vo_h_announcer_enemydefeated_0",
+   "vo_h_announcer_enemydefeated_1"
+  ],
+  "victory": [
+   "vo_h_announcer_victory_0"
+  ],
+  "defeat": [
+   "vo_h_announcer_defeat_0"
+  ]
+ },
+ "h_sfx": {
+  "shotSoldier": [
+   "hsfx_shotSoldier"
+  ],
+  "shotMech": [
+   "hsfx_shotMech"
+  ],
+  "shotColossus": [
+   "hsfx_shotColossus"
+  ],
+  "hit": [
+   "hsfx_hit"
+  ],
+  "shotTower": [
+   "hsfx_shotTower"
+  ],
+  "launch": [
+   "hsfx_launch"
+  ],
+  "mortar": [
+   "hsfx_mortar"
+  ],
+  "explosionSmall": [
+   "hsfx_explosionSmall"
+  ],
+  "explosion": [
+   "hsfx_explosion"
+  ],
+  "repair": [
+   "hsfx_repair"
+  ],
+  "gather": [
+   "hsfx_gather"
+  ],
+  "deliver": [
+   "hsfx_deliver"
+  ],
+  "built": [
+   "hsfx_built"
+  ],
+  "trained": [
+   "hsfx_trained"
+  ],
+  "death": [
+   "hsfx_death"
+  ],
+  "deathBig": [
+   "hsfx_deathBig"
+  ],
+  "destroyed": [
+   "hsfx_destroyed"
+  ],
+  "warning": [
+   "hsfx_warning"
+  ],
+  "genUp": [
+   "hsfx_genUp"
+  ],
+  "powerDown": [
+   "hsfx_powerDown"
+  ],
+  "alert": [
+   "hsfx_alert"
+  ],
+  "place": [
+   "hsfx_place"
+  ],
+  "victory": [
+   "hsfx_victory"
+  ],
+  "defeat": [
+   "hsfx_defeat"
   ]
  }
 }

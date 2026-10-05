@@ -171,6 +171,8 @@ export class GameView {
   private readonly projGfx = new Graphics();
   /** Colas de los cohetes en este frame, para soltar humo en updateFx. */
   private rocketTails: (Pos & { small: boolean })[] = [];
+  /** Posiciones de las esferas del Querubín este frame (para su estela de chispas). */
+  private orbTrail: Pos[] = [];
   private effects: Effect[] = [];
   private readonly kicks = new Map<number, Kick>();
   /** Semilla propia para la dispersión de escombros: el render no toca el azar de la simulación. */
@@ -362,7 +364,7 @@ export class GameView {
    * Unidad prerenderizada: elige dirección (hacia donde se mueve o hacia su objetivo) y fotograma
    * (disparo reciente, apuntando, caminando o en reposo).
    */
-  private animateUnit(st: State, u: Unit, s: UnitSprite, sx: number, sy: number, color: number): void {
+  private animateUnit(st: State, u: Unit, s: UnitSprite, sx: number, sy: number, color: number, artKey: string): void {
     let a = this.anim.get(u.id);
     if (!a) {
       a = { dir: 2, phase: (u.id * 0.37) % 1, fired: -9, sx, sy };
@@ -409,7 +411,7 @@ export class GameView {
       anim = 'walk';
       f = Math.floor((this.time * 7 + a.phase * 8) % 8);
     }
-    const fr = unitFrame(u.type, anim, a.dir, f);
+    const fr = unitFrame(artKey, anim, a.dir, f);
     if (!fr) return;
     if (s.body.texture !== fr.body) {
       s.body.texture = fr.body;
@@ -718,8 +720,10 @@ export class GameView {
       const power = u.needsPower && !st.players[u.owner].noPower ? (u.battery <= 0 ? 'off' : isPowered(st, u.owner, u.x, u.y) ? (u.battery < bmax ? 'charge' : 'on') : 'out') : '';
       const body: BodyState = { type: u.type, color: PLAYER_COLORS[u.owner] ?? 0xcccccc, carry: u.carry > 0, deployState: u.deployState, nodePowered: u.nodePowered, light: power === 'charge' ? 'on' : power };
       const bodyKey = `${body.type}|${body.color}|${body.light}|${body.carry}|${body.deployState}|${body.nodePowered}`;
-      if (hasUnitArt(u.type)) {
-        this.animateUnit(st, u, s, sx, sy, body.color);
+      // Arte propio de la facción si lo hay (Huestes: h_<tipo>); si no, el común.
+      const artKey = st.players[u.owner]?.faction === 'huestes' && hasUnitArt(`h_${u.type}`) ? `h_${u.type}` : u.type;
+      if (hasUnitArt(artKey)) {
+        this.animateUnit(st, u, s, sx, sy, body.color, artKey);
       } else if (bodyKey !== s.bodyKey) {
         const t = this.bodyTexture(body);
         s.body.texture = t.tex;
@@ -954,6 +958,15 @@ export class GameView {
             for (let i = 0; i < 4; i++) this.effects.push({ kind: 'puff', x: x + (this.rand() - 0.5) * 10, y: y - 4, r0: 3, r1: 11, rise: 14, color: 0xb9b2a4, alpha: 0.55, age: i * 0.04, dur: 0.9 });
             break;
           }
+          if (f.utype === 'siege' && st.players[f.owner]?.faction === 'huestes') {
+            // Querubín: la espada descarga y su punta destella en oro.
+            const sx = isoX(f.x, f.y);
+            const sy = isoY(f.x, f.y) - MUZZLE.siege - 30;
+            this.effects.push({ kind: 'flash', x: sx, y: sy, r: 22, color: 0xffd36a, age: 0, dur: 0.3 });
+            this.effects.push({ kind: 'flash', x: sx, y: sy, r: 10, color: 0xffffff, age: 0, dur: 0.15 });
+            this.effects.push({ kind: 'ring', x: sx, y: sy, r0: 6, r1: 30, color: 0xffd36a, width: 2, age: 0, dur: 0.35, energy: true });
+            break;
+          }
           // Contragolpe: fogonazo en la batería y humo que se abre alrededor del lanzador.
           this.kick(f.unit, f.x, f.y, f.x - 64, f.y - 64, 4, 0.35);
           const x = isoX(f.x, f.y);
@@ -973,6 +986,23 @@ export class GameView {
           if (f.utype === 'artillery') {
             // Obús: estallido seco y más pequeño que el del cohete de asedio.
             this.boom(x, y, Math.max(40, r * 1.2), { debris: 7, smoke: 2 });
+            break;
+          }
+          if (f.utype === 'siege' && st.players[f.owner]?.faction === 'huestes') {
+            // Esferas del Querubín: tres estallidos de luz dorada separados, con anillo y algo de polvo.
+            for (let k = 0; k < 3; k++) {
+              const ang = (k * Math.PI * 2) / 3 + this.rand();
+              const bx = x + Math.cos(ang) * r * 0.35;
+              const by = y + Math.sin(ang) * r * 0.18;
+              const d = -k * 0.07;
+              this.effects.push({ kind: 'flash', x: bx, y: by - 10, r: r * 0.45, color: 0xffe08a, age: d, dur: 0.35 });
+              this.effects.push({ kind: 'flash', x: bx, y: by - 12, r: r * 0.2, color: 0xffffff, age: d, dur: 0.18 });
+              this.effects.push({ kind: 'ring', x: bx, y: by, r0: r * 0.15, r1: r * 0.7, color: 0xffd36a, width: 2, age: d, dur: 0.45, energy: true });
+              this.effects.push({ kind: 'ring', x: bx, y: by, r0: r * 0.2, r1: r * 0.8, color: 0xffffff, width: 2, age: d, dur: 0.5 });
+              this.debris(bx, by - 6, 4, 0x5b5f6a, 1.2, d);
+            }
+            const scorch = fxFrames('scorch');
+            if (scorch.length) this.effects.push({ kind: 'decal', tex: scorch[0], x, y, w: r * 1.2, age: 0, dur: 25 });
             break;
           }
           this.boom(x, y, Math.max(90, r * 1.5), { debris: 14, smoke: 5 });
@@ -1027,19 +1057,20 @@ export class GameView {
    * Cohetes en vuelo: avanzan con aceleración (lento al salir, rápido al final) sobre un arco que
    * parte de la batería del lanzador y cae sobre el punto apuntado.
    */
-  private rocketPos(p: State['projectiles'][number], prog: number): Pos {
-    // Cohete: sale lento y acelera. Obús: trayectoria balística a velocidad constante, con más arco.
-    const shell = p.utype === 'artillery';
+  private rocketPos(p: State['projectiles'][number], prog: number, lob = false): Pos {
+    // Cohete: sale lento y acelera. Obús (y esferas del Querubín): balística a velocidad constante, con más arco.
+    const shell = p.utype === 'artillery' || lob;
     const e = shell ? prog : prog * prog;
     const gx = p.x0 + (p.x1 - p.x0) * e;
     const gy = p.y0 + (p.y1 - p.y0) * e;
     const dist = Math.hypot(isoX(p.x1, p.y1) - isoX(p.x0, p.y0), isoY(p.x1, p.y1) - isoY(p.x0, p.y0));
-    const lift = shell ? Math.min(260, dist * 0.6) : Math.min(180, dist * 0.4);
+    const lift = lob ? Math.min(190, dist * 0.45) : shell ? Math.min(260, dist * 0.6) : Math.min(180, dist * 0.4);
     const h = MUZZLE[p.utype] * (1 - e) + Math.sin(Math.PI * e) * lift;
     return { x: isoX(gx, gy), y: isoY(gx, gy) - h };
   }
 
   private drawRockets(st: State, alpha: number): void {
+    this.orbTrail = [];
     this.projGfx.clear();
     this.rocketTails = [];
     const rocketTex = fxTex('rocket');
@@ -1066,6 +1097,28 @@ export class GameView {
       const prog = Math.min(1, (p.t + alpha) / p.dur);
       const e = p.utype === 'artillery' ? prog : prog * prog;
       if (p.owner !== this.me && !isVisible(st, this.me, p.x0 + (p.x1 - p.x0) * e, p.y0 + (p.y1 - p.y0) * e)) continue;
+      if (p.utype === 'siege' && st.players[p.owner]?.faction === 'huestes') {
+        // Querubín: tres esferas doradas con halo, en arco alto de catapulta, girando entrelazadas.
+        const c = this.rocketPos(p, prog, true);
+        const spin = prog * Math.PI * 5 + p.id;
+        const r = 16 * Math.sin(Math.PI * Math.min(1, prog * 1.15));
+        for (let k = 0; k < 3; k++) {
+          const ang = spin + (k * Math.PI * 2) / 3;
+          const ox = Math.cos(ang) * r;
+          const oy = Math.sin(ang) * r * 0.6;
+          const halo = sprite(glowTex, true);
+          halo.position.set(c.x + ox, c.y + oy);
+          halo.width = halo.height = 46;
+          halo.tint = 0xffc24a;
+          halo.alpha = 0.9;
+          const core = sprite(glowTex, true);
+          core.position.set(c.x + ox, c.y + oy);
+          core.width = core.height = 18;
+          core.tint = 0xfff6d8;
+          this.orbTrail.push({ x: c.x + ox, y: c.y + oy });
+        }
+        continue;
+      }
       const a = this.rocketPos(p, prog);
       if (p.utype === 'artillery') {
         // Obús incandescente: núcleo caliente y halo.
@@ -1122,6 +1175,16 @@ export class GameView {
         break;
       case 'soldier':
         this.kick(f.unit, f.tx, f.ty, f.x, f.y, 1.5, 0.1);
+        if (st.players[f.owner]?.faction === 'huestes') {
+          // Ángel: la punta de la lanza se enciende y lanza un rayo de luz dorada; estalla en un anillo de luz.
+          const ly = y1 - 6;
+          push({ kind: 'flash', x: x1, y: ly, r: 6, color: 0xfff0b0, age: 0, dur: 0.18 });
+          push({ kind: 'line', x1, y1: ly, x2, y2, color: 0xffd36a, width: 3, alpha: 1, age: 0, dur: 0.16 });
+          push({ kind: 'line', x1, y1: ly, x2, y2, color: 0xffffff, width: 1, alpha: 1, age: 0, dur: 0.1 });
+          push({ kind: 'flash', x: x2, y: y2, r: 7, color: 0xffd36a, age: 0, dur: 0.25 });
+          push({ kind: 'ring', x: x2, y: y2 + 4, r0: 3, r1: 16, color: 0xffd36a, width: 2, age: 0, dur: 0.3, energy: true });
+          break;
+        }
         this.muzzle(x1, y1, x2, y2, 9);
         push({ kind: 'line', x1, y1, x2, y2, color: 0xffe28a, width: 1.2, alpha: 0.9, age: 0, dur: 0.08 });
         push({ kind: 'flash', x: x2, y: y2, r: 2.5, color: 0xffb347, age: 0, dur: 0.1 });
@@ -1347,6 +1410,8 @@ export class GameView {
       return true;
     });
     // Estela de humo de los cohetes en vuelo (un frame sí y otro no: suficiente para verse continua).
+    // Estela de chispas doradas de las esferas.
+    if (dt > 0) for (const t of this.orbTrail) this.effects.push({ kind: 'flash', x: t.x + (this.rand() - 0.5) * 6, y: t.y + (this.rand() - 0.5) * 6, r: 5, color: 0xffd36a, age: 0, dur: 0.45 });
     if (dt > 0 && this.frame % 2 === 0) for (const t of this.rocketTails) this.effects.push(t.small ? { kind: 'puff', x: t.x, y: t.y, r0: 1.5, r1: 4, rise: 2, color: 0xffd08a, alpha: 0.45, age: 0, dur: 0.35 } : { kind: 'puff', x: t.x, y: t.y, r0: 2.5, r1: 9, rise: 6, color: 0xc9c2b4, alpha: 0.55, age: 0, dur: 0.9 });
   }
 

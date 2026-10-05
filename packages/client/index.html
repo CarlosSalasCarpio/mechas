@@ -108,9 +108,16 @@
       .menuBox .tag { margin: 0 0 8px; color: #ffb347; letter-spacing: 1px; }
       .menuBox h3 { margin: 6px 0 0; font-weight: normal; letter-spacing: 3px; color: #7dffb0; text-transform: uppercase; font-size: 13px; }
       .menuBox label { color: #a8927a; font-size: 12px; }
-      #modes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-      #modes button { padding: 8px 4px; }
-      #modes button.on { background: #ffb347; color: #0e0b16; }
+      #lobby { display: flex; flex-direction: column; gap: 6px; }
+      .slot { display: grid; grid-template-columns: 70px 1fr 1fr 90px 28px; gap: 6px; align-items: center; }
+      .slot .who { color: #f3e9d8; letter-spacing: 1px; }
+      .slot select { font: inherit; padding: 5px 6px; background: #141824; color: #f3e9d8; border: 1px solid #3a3420; border-radius: 2px; }
+      .slot .swatch { display: flex; align-items: center; gap: 6px; }
+      .slot .swatch i { width: 14px; height: 14px; border: 1px solid #000; flex-shrink: 0; }
+      .slot .swatch select { flex: 1; min-width: 0; }
+      .slot button { padding: 2px 0; }
+      .addAi { align-self: flex-start; }
+      .menuBox { width: 600px; }
       #seedInput { font: inherit; padding: 7px 9px; background: #1d1726; color: #f3e9d8; border: 1px solid #6b4a2a; border-radius: 3px; }
       .menuButtons { display: flex; gap: 8px; margin-top: 8px; }
       .menuButtons .primary { flex-grow: 1; padding: 10px; font-size: 15px; background: #ffb347; color: #0e0b16; }
@@ -145,8 +152,9 @@
         <h1>MECHAS</h1>
         <p class="tag">Estrategia en tiempo real · retrofuturismo de los 80</p>
         <h3>Nueva partida</h3>
-        <label>Modo (tú eres el primer equipo; el resto, IA)</label>
-        <div id="modes"></div>
+        <label>Jugadores (como en AoE2: mismo equipo = aliados; «—» = contra todos)</label>
+        <div id="lobby"></div>
+        <button id="addAi" class="addAi">+ Añadir IA</button>
         <label for="seedInput">Semilla del mapa (vacía = aleatoria)</label>
         <input id="seedInput" inputmode="numeric" placeholder="aleatoria" />
         <div class="menuButtons"><button id="newGame" class="primary">Empezar partida</button><button id="menuLoad">Cargar replay</button></div>

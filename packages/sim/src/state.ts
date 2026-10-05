@@ -35,9 +35,13 @@ export const POP_CAP = 200;
 /** Tope de población con el truco de desarrollo. */
 export const CHEAT_POP_CAP = 1000;
 
+/** Facción: por ahora solo cambia nombres y, más adelante, arte y reglas. */
+export type Faction = 'mechas' | 'huestes';
+
 export interface PlayerState {
   /** Equipo: los jugadores del mismo equipo son aliados (no se atacan y comparten visión). */
   team: number;
+  faction: Faction;
   /** Eliminado (perdió su cuartel general). */
   defeated: boolean;
   metal: number;
