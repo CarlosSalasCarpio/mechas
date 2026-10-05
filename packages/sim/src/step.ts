@@ -7,7 +7,7 @@ import { descend, distanceField, findPath, INF, lineWalkable, toWaypoints } from
 import { CARRY, GATHER_TICKS, type MetalNode } from './resource';
 import { addBuilding, addUnit, CHEAT_POP_CAP, hostile, POP_CAP, popUsed, type State } from './state';
 import { BATTERY_RECHARGE, UNITS, type QueuedOrder, type Unit } from './unit';
-import { attackDamage, batteryMax, BUILDING_GEN, carryCap, gatherTicks, refreshUnit, RELAY_HP, TECHS, towerDamage, UNIT_GEN } from './tech';
+import { attackDamage, batteryMax, BUILDING_GEN, carryCap, gatherTicks, refreshUnit, RELAY_HP, TECH_ORDER, TECHS, towerDamage, UNIT_GEN } from './tech';
 import { canPlaceBuilding, canPlaceKnown, isPowered, nearestPoweredTile, updatePower, visibleBlocker } from './power';
 import { updateVision } from './vision';
 
@@ -402,6 +402,22 @@ function applyCommand(st: State, c: Command): void {
     case 'toggleNoPower':
       pl.noPower = !pl.noPower;
       return;
+    case 'unlockAll': {
+      const was = pl.gen;
+      pl.gen = 3;
+      pl.techs = [...TECH_ORDER];
+      for (const b of st.buildings) {
+        if (b.owner !== c.player || b.type !== 'relay') continue;
+        b.hp = Math.max(1, Math.trunc((b.hp * RELAY_HP[3]) / b.maxHp));
+        b.maxHp = RELAY_HP[3];
+      }
+      for (const u of st.units) if (u.owner === c.player) refreshUnit(st, u);
+      if (was < 3) {
+        st.events.push({ tick: st.tick, player: c.player, kind: 'generation', gen: 3 });
+        if (st.events.length > MAX_EVENTS) st.events.shift();
+      }
+      return;
+    }
     case 'toggleRevealMap':
       pl.revealMap = !pl.revealMap;
       return;

@@ -1,4 +1,5 @@
 import { Decor, decorReady, decorTexture } from './decor';
+import { fxFrames, fxReady, fxTex } from './fx';
 import { hasUnitArt, screenDir, unitFrame, type UnitAnim } from './units';
 import { createTerrain, terrainTexturesReady, type TerrainMesh } from './terrain';
 import { Container, Graphics, Matrix, Sprite as PixiSprite, Text, Texture, type Renderer } from 'pixi.js';
@@ -105,16 +106,20 @@ interface Sprite {
 }
 
 /** Altura (px) desde los pies a la que dispara cada unidad. */
-const MUZZLE: Record<UnitType, number> = { worker: 8, soldier: 15, mech: 52, artillery: 92, truck: 10, colossus: 122, siege: 140 };
+const MUZZLE: Record<UnitType, number> = { worker: 8, soldier: 15, mech: 52, artillery: 92, truck: 10, colossus: 122, siege: 112 };
 
 type Effect =
   | { kind: 'line'; x1: number; y1: number; x2: number; y2: number; color: number; width: number; alpha: number; age: number; dur: number; spr?: PixiSprite[] }
   | { kind: 'flash'; x: number; y: number; r: number; color: number; age: number; dur: number; spr?: PixiSprite[] }
-  | { kind: 'ring'; x: number; y: number; r0: number; r1: number; color: number; width: number; age: number; dur: number; spr?: PixiSprite[] }
+  | { kind: 'ring'; x: number; y: number; r0: number; r1: number; color: number; width: number; age: number; dur: number; energy?: boolean; spr?: PixiSprite[] }
+  /** Secuencia de fotogramas prerenderizada (explosión, fogonazo). `h`: alto en px; `add`: mezcla aditiva. */
+  | { kind: 'anim'; frames: Texture[]; x: number; y: number; h: number; rot: number; add: boolean; age: number; dur: number; spr?: PixiSprite[] }
+  /** Marca en el suelo (quemado) que se desvanece al final. */
+  | { kind: 'decal'; tex: Texture; x: number; y: number; w: number; age: number; dur: number; spr?: PixiSprite[] }
   | { kind: 'debris'; x: number; y: number; parts: { vx: number; vy: number; s: number }[]; color: number; age: number; dur: number; spr?: PixiSprite[] }
   | { kind: 'text'; t: Text; age: number; dur: number; spr?: PixiSprite[] }
   /** Bocanada de humo que crece, sube y se desvanece. */
-  | { kind: 'puff'; x: number; y: number; r0: number; r1: number; rise: number; color: number; alpha: number; age: number; dur: number; spr?: PixiSprite[] };
+  | { kind: 'puff'; x: number; y: number; r0: number; r1: number; rise: number; color: number; alpha: number; age: number; dur: number; spr?: PixiSprite[]; v?: number; rot?: number };
 
 /** Unidad en pantalla: cuerpo (textura horneada), sombra, anillo de selección y barras como sprites. */
 interface UnitSprite {
@@ -187,7 +192,15 @@ export class GameView {
   private decor: Decor | null = null;
   private readonly anim = new Map<number, UnitAnimState>();
   private readonly ventSprites: PixiSprite[] = [];
+  private readonly ventHalos = new Map<object, PixiSprite>();
   private readonly ghostArt = new PixiSprite(Texture.EMPTY);
+  /** Marcas de quemado en el suelo (debajo de unidades y edificios). */
+  private readonly decalLayer = new Container();
+  /** Proyectiles en vuelo como sprites (cohete renderizado, llama y obús incandescente). */
+  private readonly projLayer = new Container();
+  private readonly projSprites: PixiSprite[] = [];
+  /** Fuego en los edificios dañados: sprites en bucle por edificio. */
+  private readonly burning = new Map<number, { fires: PixiSprite[]; smokeAt: number }>();
   /** Hologramas de los cimientos que tus obreros van a poner (aún no existen en el mapa). */
   private readonly pendingArt: PixiSprite[] = [];
 
@@ -227,7 +240,7 @@ export class GameView {
     this.fogTex.source.scaleMode = 'linear';
     this.fog = new PixiSprite(this.fogTex);
     this.fog.setFromMatrix(new Matrix(TW / 2, TH / 2, -TW / 2, TH / 2, 0, 0));
-    this.world.addChild(this.terrainLayer, this.ventGfx, this.powerGfx, this.groundFx, this.entityLayer, this.fxGfx, this.projGfx, this.fxLayer, this.fog, this.ghost, this.ghostArt);
+    this.world.addChild(this.terrainLayer, this.ventGfx, this.decalLayer, this.powerGfx, this.groundFx, this.entityLayer, this.fxGfx, this.projGfx, this.projLayer, this.fxLayer, this.fog, this.ghost, this.ghostArt);
     this.ghostArt.blendMode = 'add';
     this.ghostArt.visible = false;
     this.entityLayer.sortableChildren = true;
@@ -256,6 +269,58 @@ export class GameView {
     g.destroy();
     this.bodyCache.set(key, t);
     return t;
+  }
+
+  /**
+   * Edificio dañado: llamas prerenderizadas en bucle sobre el tejado (1, 2 o 3 según el daño) y humo que
+   * sube. Se apagan al repararlo.
+   */
+  private updateBurning(b: Building, c: Container): void {
+    const frac = b.hp / b.maxHp;
+    const want = !b.complete || b.hp <= 0 ? 0 : frac < 0.25 ? 3 : frac < 0.45 ? 2 : frac < 0.65 ? 1 : 0;
+    let entry = this.burning.get(b.id);
+    const frames = fxFrames('fire');
+    if (want === 0 || !frames.length) {
+      if (entry) {
+        for (const f of entry.fires) f.destroy();
+        this.burning.delete(b.id);
+      }
+      return;
+    }
+    if (!entry) {
+      entry = { fires: [], smokeAt: 0 };
+      this.burning.set(b.id, entry);
+    }
+    while (entry.fires.length < want) {
+      const f = new PixiSprite(frames[0]);
+      this.entityLayer.addChild(f);
+      entry.fires.push(f);
+    }
+    while (entry.fires.length > want) entry.fires.pop()!.destroy();
+    const art = BUILDING_ART[b.type] ? decorTexture(BUILDING_ART[b.type]!) : null;
+    const top = art ? art.height * (art.defaultAnchor?.y ?? 1) * 0.6 : 40;
+    const hw = (b.size * TW) / 2;
+    const hh = (b.size * TH) / 2;
+    const r = (k: number) => {
+      const v = Math.sin(b.id * 12.9898 + k * 78.233) * 43758.5453;
+      return v - Math.floor(v);
+    };
+    entry.fires.forEach((f, k) => {
+      const tex = frames[Math.floor(this.time * 14 + k * 5) % frames.length];
+      if (f.texture !== tex) f.texture = tex;
+      f.anchor.copyFrom(tex.defaultAnchor ?? { x: 0.5, y: 1 });
+      const x = c.x + (r(k) - 0.5) * hw * 0.9;
+      const y = c.y - top * (0.45 + 0.4 * r(k + 3)) + (r(k + 7) - 0.5) * hh * 0.6;
+      f.position.set(x, y);
+      f.scale.set((22 + 6 * want) / tex.height);
+      f.zIndex = c.zIndex + 1;
+      f.visible = c.visible;
+    });
+    if (c.visible && this.time > entry.smokeAt) {
+      entry.smokeAt = this.time + 0.4 / want;
+      const f = entry.fires[Math.floor(this.rand() * entry.fires.length)];
+      this.effects.push({ kind: 'puff', x: f.x + (this.rand() - 0.5) * 6, y: f.y - 14, r0: 6, r1: 18 + 4 * want, rise: 50 + 15 * want, color: 0x3a3640, alpha: 0.65, age: 0, dur: 2.4 });
+    }
   }
 
   /** Hologramas de cimientos pendientes: órdenes 'place' (actuales y en cola) de los obreros propios. */
@@ -512,8 +577,23 @@ export class GameView {
       const x = isoX(v.tx * SUB + SUB / 2, v.ty * SUB + SUB / 2);
       const y = isoY(v.tx * SUB + SUB / 2, v.ty * SUB + SUB / 2);
       if (this.ventSprites.length) {
-        // Solo el halo que late; las grietas brillantes las pinta el shader del terreno.
-        g.ellipse(x, y, 34 + 6 * pulse, 17 + 3 * pulse).fill({ color: 0x3ee6ff, alpha: 0.1 * pulse });
+        // Solo el halo que late (resplandor renderizado); las grietas brillantes las pinta el shader del terreno.
+        const glow = fxTex('glow');
+        if (glow) {
+          let halo = this.ventHalos.get(v);
+          if (!halo) {
+            halo = new PixiSprite(glow);
+            halo.anchor.set(0.5);
+            halo.blendMode = 'add';
+            halo.tint = 0x3ee6ff;
+            this.decalLayer.addChild(halo);
+            this.ventHalos.set(v, halo);
+          }
+          halo.position.set(x, y);
+          halo.width = 110 + 14 * pulse;
+          halo.height = 55 + 7 * pulse;
+          halo.alpha = 0.35 * pulse;
+        }
         continue;
       }
       g.ellipse(x, y, 58, 29).fill({ color: 0x1c1428, alpha: 0.55 });
@@ -609,6 +689,7 @@ export class GameView {
       s.c.tint = 0xffffff;
       s.c.visible = this.inView(px, py);
       if (s.c.visible) this.buildingBars(s.c, sel || b.hp < b.maxHp ? b.hp / b.maxHp : -1, !b.complete ? prog / 100 : res >= 0 ? res / 100 : train >= 0 ? train / 100 : -1);
+      this.updateBurning(b, s.c);
       if (!b.complete) {
         const holo = s.c.children.find((ch) => ch.label === 'holo');
         if (holo) holo.alpha = 0.38 + 0.12 * Math.sin(this.time * 4 + b.id);
@@ -681,6 +762,11 @@ export class GameView {
       if (!seen.has(id)) {
         s.c.destroy({ children: true });
         this.sprites.delete(id);
+        const burn = this.burning.get(id);
+        if (burn) {
+          for (const f of burn.fires) f.destroy();
+          this.burning.delete(id);
+        }
       }
     }
 
@@ -808,23 +894,33 @@ export class GameView {
         case 'death': {
           const x = isoX(f.x, f.y);
           const y = isoY(f.x, f.y);
-          const big = f.utype === 'colossus' ? 3 : f.utype === 'mech' ? 2 : 1;
-          if (big > 1) this.effects.push({ kind: 'flash', x, y: y - 20 * big, r: 12 * big, color: 0xff8a3c, age: 0, dur: 0.35 + 0.15 * big });
-          this.effects.push({ kind: 'flash', x, y: y - 6, r: 6 * big, color: 0x6b6570, age: 0, dur: 0.6 });
-          this.debris(x, y - 8 * big, 4 + 5 * big, big === 1 ? (PLAYER_COLORS[f.owner] ?? 0xcccccc) : 0xe6dccb, big);
-          if (big === 3) this.effects.push({ kind: 'ring', x, y, r0: 10, r1: 90, color: 0xffd08a, width: 3, age: 0, dur: 0.6 });
+          if (f.utype === 'worker' || f.utype === 'soldier') {
+            // Infantería: polvo y unos restos, sin explosión.
+            this.effects.push({ kind: 'puff', x, y: y - 4, r0: 3, r1: 9, rise: 6, color: 0x8a7f6c, alpha: 0.7, age: 0, dur: 0.9 });
+            this.debris(x, y - 6, 4, 0x5b5f6a, 0.6);
+            break;
+          }
+          // Máquinas: explosión proporcional a su tamaño (el reactor del coloso va aparte).
+          const size = f.utype === 'colossus' || f.utype === 'siege' ? 150 : f.utype === 'truck' ? 60 : 80;
+          this.boom(x, y, size, { debris: 6 + Math.round(size / 15), smoke: Math.round(size / 30) });
           break;
         }
         case 'destroyed': {
           const x = isoX(f.x, f.y);
           const y = isoY(f.x, f.y);
-          for (let i = 0; i < 4; i++) this.effects.push({ kind: 'flash', x: x + (i - 1.5) * 18, y: y - 10 - i * 6, r: 22, color: i % 2 ? 0x77736b : 0xff8a3c, age: -i * 0.08, dur: 0.8 });
-          this.debris(x, y - 20, 18, 0x8a8494, 3);
+          // Edificio: varias explosiones encadenadas sobre su huella y una gran nube de polvo.
+          const w = (BUILDINGS[f.btype].size * TW) / 2;
+          for (let i = 0; i < 4; i++) {
+            const ox = (this.rand() - 0.5) * w;
+            const oy = (this.rand() - 0.5) * w * 0.5;
+            this.boom(x + ox, y + oy, w * (0.7 + this.rand() * 0.5), { debris: 6, smoke: 3, delay: i * 0.18, scorch: i === 0 });
+          }
+          this.effects.push({ kind: 'ring', x, y, r0: w * 0.5, r1: w * 2, color: 0xffffff, width: 3, age: 0, dur: 0.9 });
           break;
         }
         case 'built': {
           const r = (BUILDINGS[f.btype].size * TW) / 2 + 10;
-          this.effects.push({ kind: 'ring', x: isoX(f.x, f.y), y: isoY(f.x, f.y), r0: r * 0.6, r1: r * 1.2, color: 0xf5d68a, width: 3, age: 0, dur: 0.8 });
+          this.effects.push({ kind: 'ring', x: isoX(f.x, f.y), y: isoY(f.x, f.y), r0: r * 0.6, r1: r * 1.2, color: 0xf5d68a, width: 3, age: 0, dur: 0.8, energy: true });
           break;
         }
         case 'towerShot': {
@@ -836,9 +932,10 @@ export class GameView {
           const target = st.byId.get(f.target);
           const x2 = isoX(f.tx, f.ty);
           const y2 = isoY(f.tx, f.ty) - (target ? UNIT_BOX[target.type].h * 0.5 : 10);
+          this.muzzle(x1, y1, x2, y2, 18);
           this.effects.push({ kind: 'line', x1, y1, x2, y2, color: 0xffd08a, width: 2, alpha: 1, age: 0, dur: 0.1 });
-          this.effects.push({ kind: 'flash', x: x1, y: y1, r: 4, color: 0xfff2c8, age: 0, dur: 0.08 });
-          this.effects.push({ kind: 'flash', x: x2, y: y2, r: 4, color: 0xffb347, age: 0, dur: 0.14 });
+          this.effects.push({ kind: 'flash', x: x2, y: y2, r: 5, color: 0xffb347, age: 0, dur: 0.14 });
+          this.debris(x2, y2, 2, 0x5b5f6a, 0.6);
           break;
         }
         case 'repair': {
@@ -853,8 +950,7 @@ export class GameView {
             this.kick(f.unit, f.x, f.y, f.x - 64, f.y - 64, 3, 0.2);
             const x = isoX(f.x, f.y) + 16;
             const y = isoY(f.x, f.y) - MUZZLE.artillery;
-            this.effects.push({ kind: 'flash', x, y, r: 7, color: 0xfff2c8, age: 0, dur: 0.12 });
-            this.effects.push({ kind: 'flash', x, y, r: 12, color: 0xffb347, age: 0, dur: 0.2 });
+            this.muzzle(x, y, x + 10, y - 30, 24);
             for (let i = 0; i < 4; i++) this.effects.push({ kind: 'puff', x: x + (this.rand() - 0.5) * 10, y: y - 4, r0: 3, r1: 11, rise: 14, color: 0xb9b2a4, alpha: 0.55, age: i * 0.04, dur: 0.9 });
             break;
           }
@@ -862,8 +958,7 @@ export class GameView {
           this.kick(f.unit, f.x, f.y, f.x - 64, f.y - 64, 4, 0.35);
           const x = isoX(f.x, f.y);
           const y = isoY(f.x, f.y);
-          this.effects.push({ kind: 'flash', x: x - 4, y: y - MUZZLE.siege, r: 12, color: 0xfff2c8, age: 0, dur: 0.18 });
-          this.effects.push({ kind: 'flash', x: x - 4, y: y - MUZZLE.siege + 4, r: 20, color: 0xff8a3c, age: 0, dur: 0.3 });
+          this.muzzle(x - 4, y - MUZZLE.siege, x + 20, y - MUZZLE.siege - 40, 40);
           for (let i = 0; i < 8; i++) {
             const ang = (i / 8) * Math.PI * 2;
             this.effects.push({ kind: 'puff', x: x + Math.cos(ang) * 14, y: y - MUZZLE.siege + 10 + Math.sin(ang) * 7, r0: 5, r1: 16 + this.rand() * 8, rise: 10, color: 0xb9b2a4, alpha: 0.6, age: -i * 0.02, dur: 1.2 });
@@ -877,22 +972,10 @@ export class GameView {
           const r = (f.splash * TW) / (SUB * Math.SQRT2);
           if (f.utype === 'artillery') {
             // Obús: estallido seco y más pequeño que el del cohete de asedio.
-            this.effects.push({ kind: 'flash', x, y: y - 6, r: r * 0.8, color: 0xffb347, age: 0, dur: 0.3 });
-            this.effects.push({ kind: 'flash', x, y: y - 8, r: r * 0.35, color: 0xfff2c8, age: 0, dur: 0.15 });
-            this.effects.push({ kind: 'ring', x, y, r0: r * 0.3, r1: r * 1.1, color: 0xffd08a, width: 2, age: 0, dur: 0.35 });
-            this.debris(x, y - 6, 8, 0x3a3039, 2);
-            for (let i = 0; i < 4; i++) this.effects.push({ kind: 'puff', x: x + (this.rand() - 0.5) * r, y: y - 4, r0: 5, r1: 16, rise: 20, color: 0x4b4555, alpha: 0.6, age: 0.05 + i * 0.03, dur: 1.2 });
+            this.boom(x, y, Math.max(40, r * 1.2), { debris: 7, smoke: 2 });
             break;
           }
-          this.effects.push({ kind: 'flash', x, y: y - 10, r: r * 0.9, color: 0xff8a3c, age: 0, dur: 0.45 });
-          this.effects.push({ kind: 'flash', x, y: y - 14, r: r * 0.45, color: 0xfff2c8, age: 0, dur: 0.22 });
-          this.effects.push({ kind: 'ring', x, y, r0: r * 0.3, r1: r * 1.25, color: 0xffd08a, width: 3, age: 0, dur: 0.5 });
-          this.effects.push({ kind: 'ring', x, y, r0: r * 0.2, r1: r, color: 0xff4d6d, width: 2, age: 0.05, dur: 0.45 });
-          this.debris(x, y - 12, 18, 0x3a3039, 3);
-          for (let i = 0; i < 9; i++) {
-            const ang = (i / 9) * Math.PI * 2;
-            this.effects.push({ kind: 'puff', x: x + Math.cos(ang) * r * 0.5, y: y - 8 + Math.sin(ang) * r * 0.25, r0: 8, r1: 26 + this.rand() * 12, rise: 30, color: i % 3 ? 0x4b4555 : 0x77736b, alpha: 0.7, age: 0.1 + i * 0.03, dur: 1.8 });
-          }
+          this.boom(x, y, Math.max(90, r * 1.5), { debris: 14, smoke: 5 });
           break;
         }
         case 'powerLost': {
@@ -904,7 +987,7 @@ export class GameView {
         case 'shutdown': {
           const x = isoX(f.x, f.y);
           const y = isoY(f.x, f.y);
-          this.effects.push({ kind: 'ring', x, y, r0: 30, r1: 6, color: 0x888888, width: 2, age: 0, dur: 0.6 });
+          this.effects.push({ kind: 'ring', x, y, r0: 30, r1: 6, color: 0x888888, width: 2, age: 0, dur: 0.6, energy: true });
           for (let i = 0; i < 3; i++) this.effects.push({ kind: 'puff', x: x + (i - 1) * 8, y: y - 50, r0: 3, r1: 10, rise: 18, color: 0x6f6878, alpha: 0.5, age: i * 0.1, dur: 1.2 });
           break;
         }
@@ -913,30 +996,28 @@ export class GameView {
           const x = isoX(f.x, f.y);
           const y = isoY(f.x, f.y);
           const r = (f.radius * TW) / (SUB * Math.SQRT2);
-          this.effects.push({ kind: 'flash', x, y: y - 40, r: r * 0.7, color: 0xe0fbff, age: 0, dur: 0.25 });
-          this.effects.push({ kind: 'flash', x, y: y - 30, r: r, color: 0x3ee6ff, age: 0.05, dur: 0.6 });
-          this.effects.push({ kind: 'flash', x, y: y - 20, r: r * 0.8, color: 0xff8a3c, age: 0.15, dur: 0.8 });
-          this.effects.push({ kind: 'ring', x, y, r0: r * 0.2, r1: r * 1.4, color: 0x3ee6ff, width: 4, age: 0, dur: 0.7 });
-          this.effects.push({ kind: 'ring', x, y, r0: r * 0.1, r1: r * 1.1, color: 0xffffff, width: 2, age: 0.1, dur: 0.6 });
-          this.debris(x, y - 30, 26, 0xe9e4d8, 4);
-          for (let i = 0; i < 14; i++) {
-            const ang = (i / 14) * Math.PI * 2;
-            this.effects.push({ kind: 'puff', x: x + Math.cos(ang) * r * 0.6, y: y - 10 + Math.sin(ang) * r * 0.3, r0: 12, r1: 40 + this.rand() * 20, rise: 60, color: i % 3 ? 0x3a3039 : 0x6f6878, alpha: 0.75, age: 0.2 + i * 0.03, dur: 2.6 });
+          // Destello cian del núcleo, anillo de energía, gran explosión y anillo de explosiones menores.
+          this.effects.push({ kind: 'flash', x, y: y - 40, r: r * 0.9, color: 0xc8f6ff, age: 0, dur: 0.35 });
+          this.effects.push({ kind: 'ring', x, y, r0: r * 0.2, r1: r * 1.5, color: 0x3ee6ff, width: 4, age: 0, dur: 0.8, energy: true });
+          this.boom(x, y, r * 1.6, { debris: 26, smoke: 10 });
+          for (let i = 0; i < 6; i++) {
+            const ang = (i / 6) * Math.PI * 2;
+            this.boom(x + Math.cos(ang) * r * 0.7, y + Math.sin(ang) * r * 0.35, r * 0.6, { debris: 4, smoke: 1, delay: 0.15 + i * 0.05, shock: false });
           }
           break;
         }
         case 'researched': {
           const x = isoX(f.x, f.y);
           const y = isoY(f.x, f.y);
-          this.effects.push({ kind: 'ring', x, y: y - 20, r0: 10, r1: 60, color: 0x7dffb0, width: 3, age: 0, dur: 0.9 });
-          this.effects.push({ kind: 'ring', x, y: y - 40, r0: 6, r1: 40, color: 0xfff2c8, width: 2, age: 0.15, dur: 0.8 });
+          this.effects.push({ kind: 'ring', x, y: y - 20, r0: 10, r1: 60, color: 0x7dffb0, width: 3, age: 0, dur: 0.9, energy: true });
+          this.effects.push({ kind: 'ring', x, y: y - 40, r0: 6, r1: 40, color: 0xfff2c8, width: 2, age: 0.15, dur: 0.8, energy: true });
           break;
         }
         case 'deployed':
-          this.effects.push({ kind: 'ring', x: isoX(f.x, f.y), y: isoY(f.x, f.y), r0: f.on ? 4 : 20, r1: f.on ? 24 : 4, color: f.on ? 0x7dffb0 : 0xc9a44a, width: 2, age: 0, dur: 0.5 });
+          this.effects.push({ kind: 'ring', x: isoX(f.x, f.y), y: isoY(f.x, f.y), r0: f.on ? 4 : 20, r1: f.on ? 24 : 4, color: f.on ? 0x7dffb0 : 0xc9a44a, width: 2, age: 0, dur: 0.5, energy: true });
           break;
         case 'trained':
-          this.effects.push({ kind: 'ring', x: isoX(f.x, f.y), y: isoY(f.x, f.y), r0: 4, r1: 22, color: PLAYER_COLORS[f.owner] ?? 0xffffff, width: 2, age: 0, dur: 0.5 });
+          this.effects.push({ kind: 'ring', x: isoX(f.x, f.y), y: isoY(f.x, f.y), r0: 4, r1: 22, color: PLAYER_COLORS[f.owner] ?? 0xffffff, width: 2, age: 0, dur: 0.5, energy: true });
           break;
       }
     }
@@ -959,44 +1040,71 @@ export class GameView {
   }
 
   private drawRockets(st: State, alpha: number): void {
-    const g = this.projGfx;
-    g.clear();
+    this.projGfx.clear();
     this.rocketTails = [];
+    const rocketTex = fxTex('rocket');
+    const glowTex = fxTex('glow') ?? this.circleTex;
+    let n = 0;
+    const sprite = (tex: Texture, add: boolean) => {
+      let sp = this.projSprites[n];
+      if (!sp) {
+        sp = new PixiSprite(tex);
+        sp.anchor.set(0.5);
+        this.projSprites.push(sp);
+        this.projLayer.addChild(sp);
+      }
+      sp.texture = tex;
+      sp.blendMode = add ? 'add' : 'normal';
+      sp.visible = true;
+      sp.alpha = 1;
+      sp.rotation = 0;
+      sp.tint = 0xffffff;
+      n++;
+      return sp;
+    };
     for (const p of st.projectiles) {
       const prog = Math.min(1, (p.t + alpha) / p.dur);
       const e = p.utype === 'artillery' ? prog : prog * prog;
       if (p.owner !== this.me && !isVisible(st, this.me, p.x0 + (p.x1 - p.x0) * e, p.y0 + (p.y1 - p.y0) * e)) continue;
       const a = this.rocketPos(p, prog);
       if (p.utype === 'artillery') {
-        // Obús: una bola incandescente con halo.
-        g.circle(a.x, a.y, 7).fill({ color: 0xffb347, alpha: 0.3 });
-        g.circle(a.x, a.y, 3.2).fill(0xfff2c8).stroke({ width: 1, color: 0xff8a3c });
+        // Obús incandescente: núcleo caliente y halo.
+        const halo = sprite(glowTex, true);
+        halo.position.set(a.x, a.y);
+        halo.width = halo.height = 22;
+        halo.tint = 0xff9a40;
+        const core = sprite(glowTex, true);
+        core.position.set(a.x, a.y);
+        core.width = core.height = 9;
         this.rocketTails.push({ x: a.x, y: a.y, small: true });
         continue;
       }
       const b = this.rocketPos(p, Math.min(1, prog + 0.02));
-      let dx = b.x - a.x;
-      let dy = b.y - a.y;
-      const d = Math.hypot(dx, dy) || 1;
-      dx /= d;
-      dy /= d;
-      const nx = -dy;
-      const ny = dx;
-      const L = 16;
-      const W = 2.6;
-      const tail = { x: a.x - dx * L * 0.5, y: a.y - dy * L * 0.5 };
-      const nose = { x: a.x + dx * L * 0.5, y: a.y + dy * L * 0.5 };
-      // Llama: más larga a medida que acelera.
-      const flame = 6 + 16 * prog + this.rand() * 5;
-      g.poly([tail.x + nx * W, tail.y + ny * W, tail.x - dx * flame, tail.y - dy * flame, tail.x - nx * W, tail.y - ny * W]).fill({ color: 0xffb347, alpha: 0.9 });
-      g.poly([tail.x + nx * W * 0.5, tail.y + ny * W * 0.5, tail.x - dx * flame * 0.55, tail.y - dy * flame * 0.55, tail.x - nx * W * 0.5, tail.y - ny * W * 0.5]).fill(0xfff2c8);
-      g.circle(tail.x, tail.y, 5 + 3 * prog).fill({ color: 0xff8a3c, alpha: 0.35 });
-      // Cuerpo, aletas y ojiva.
-      g.poly([tail.x + nx * W, tail.y + ny * W, nose.x - dx * 3 + nx * W, nose.y - dy * 3 + ny * W, nose.x, nose.y, nose.x - dx * 3 - nx * W, nose.y - dy * 3 - ny * W, tail.x - nx * W, tail.y - ny * W]).fill(0xe6dccb).stroke({ width: 1, color: 0x2a2630 });
-      g.poly([nose.x - dx * 4 + nx * W, nose.y - dy * 4 + ny * W, nose.x, nose.y, nose.x - dx * 4 - nx * W, nose.y - dy * 4 - ny * W]).fill(PLAYER_COLORS[p.owner] ?? 0xef4444);
-      for (const s of [1, -1]) g.poly([tail.x + nx * W * s, tail.y + ny * W * s, tail.x + nx * W * 2.6 * s - dx * 3, tail.y + ny * W * 2.6 * s - dy * 3, tail.x + dx * 4 + nx * W * s, tail.y + dy * 4 + ny * W * s]).fill(0x5b5f6a);
-      this.rocketTails.push({ x: tail.x - dx * 4, y: tail.y - dy * 4, small: false });
+      const ang = Math.atan2(b.y - a.y, b.x - a.x);
+      const dx = Math.cos(ang);
+      const dy = Math.sin(ang);
+      // Llama del motor (más larga a medida que acelera) detrás del cohete.
+      const flame = sprite(glowTex, true);
+      const fl = 14 + 16 * prog;
+      flame.position.set(a.x - dx * (13 + fl * 0.3), a.y - dy * (13 + fl * 0.3));
+      flame.rotation = ang;
+      flame.width = fl;
+      flame.height = 9;
+      flame.tint = 0xffa040;
+      const body = sprite(rocketTex ?? Texture.WHITE, false);
+      body.position.set(a.x, a.y);
+      body.rotation = ang;
+      if (rocketTex) {
+        // Misil de unos 28 px de largo, con la proporción de su render.
+        body.width = 28;
+        body.height = (28 * rocketTex.height) / rocketTex.width;
+      } else {
+        body.width = 16;
+        body.height = 3;
+      }
+      this.rocketTails.push({ x: a.x - dx * 16, y: a.y - dy * 16, small: false });
     }
+    for (let i = n; i < this.projSprites.length; i++) this.projSprites[i].visible = false;
   }
 
   private shot(f: Extract<Fx, { kind: 'shot' }>, st: State): void {
@@ -1014,27 +1122,30 @@ export class GameView {
         break;
       case 'soldier':
         this.kick(f.unit, f.tx, f.ty, f.x, f.y, 1.5, 0.1);
-        push({ kind: 'line', x1, y1, x2, y2, color: 0xffe28a, width: 1.5, alpha: 0.9, age: 0, dur: 0.08 });
-        push({ kind: 'flash', x: x1, y: y1, r: 3, color: 0xfff2c8, age: 0, dur: 0.06 });
+        this.muzzle(x1, y1, x2, y2, 9);
+        push({ kind: 'line', x1, y1, x2, y2, color: 0xffe28a, width: 1.2, alpha: 0.9, age: 0, dur: 0.08 });
         push({ kind: 'flash', x: x2, y: y2, r: 2.5, color: 0xffb347, age: 0, dur: 0.1 });
         break;
       case 'mech':
         this.kick(f.unit, f.tx, f.ty, f.x, f.y, 3, 0.15);
-        push({ kind: 'line', x1, y1, x2, y2, color: 0xffb347, width: 7, alpha: 0.35, age: 0, dur: 0.18 });
-        push({ kind: 'line', x1, y1, x2, y2, color: 0xfff2c8, width: 2, alpha: 1, age: 0, dur: 0.14 });
-        push({ kind: 'flash', x: x1, y: y1, r: 6, color: 0xfff2c8, age: 0, dur: 0.1 });
-        push({ kind: 'flash', x: x2, y: y2, r: 11, color: 0xff8a3c, age: 0, dur: 0.25 });
+        this.muzzle(x1, y1, x2, y2, 22);
+        push({ kind: 'line', x1, y1, x2, y2, color: 0xffb347, width: 4, alpha: 0.9, age: 0, dur: 0.16 });
+        push({ kind: 'flash', x: x2, y: y2, r: 9, color: 0xff8a3c, age: 0, dur: 0.22 });
+        this.debris(x2, y2, 3, 0x5b5f6a, 0.7);
         break;
-      case 'colossus':
-        push({ kind: 'line', x1, y1, x2, y2, color: 0xff4d6d, width: 12, alpha: 0.35, age: 0, dur: 0.4 });
-        push({ kind: 'line', x1, y1, x2, y2, color: 0xffd0da, width: 3, alpha: 1, age: 0, dur: 0.35 });
-        push({ kind: 'flash', x: x1, y: y1, r: 10, color: 0xff4d6d, age: 0, dur: 0.2 });
-        push({ kind: 'flash', x: x2, y: y2, r: 20, color: 0xffd0da, age: 0, dur: 0.35 });
+      case 'colossus': {
+        // Rayo del reactor del pecho del titán: haz ancho dorado con núcleo blanco, y estallido en el blanco.
+        const cy = isoY(f.x, f.y) - MUZZLE.colossus;
+        push({ kind: 'line', x1, y1: cy, x2, y2, color: 0xff9a30, width: 9, alpha: 0.9, age: 0, dur: 0.38 });
+        push({ kind: 'line', x1, y1: cy, x2, y2, color: 0xfff4d0, width: 3.5, alpha: 1, age: 0, dur: 0.3 });
+        push({ kind: 'flash', x: x1, y: cy, r: 16, color: 0xffc060, age: 0, dur: 0.35 });
+        this.boom(x2, isoY(f.tx, f.ty), 55, { debris: 6, smoke: 2 });
         break;
+      }
     }
-    if (f.splash > 0) {
+    if (f.splash > 0 && f.utype !== 'colossus') {
       const r1 = (f.splash * TW) / (SUB * Math.SQRT2);
-      push({ kind: 'ring', x: isoX(f.tx, f.ty), y: isoY(f.tx, f.ty), r0: r1 * 0.3, r1, color: f.utype === 'colossus' ? 0xff4d6d : 0xffb347, width: 2, age: 0, dur: 0.3 });
+      push({ kind: 'ring', x: isoX(f.tx, f.ty), y: isoY(f.tx, f.ty), r0: r1 * 0.3, r1, color: 0xffffff, width: 2, age: 0, dur: 0.35 });
     }
   }
 
@@ -1051,19 +1162,54 @@ export class GameView {
     return this.seed / 2147483647;
   }
 
-  private debris(x: number, y: number, n: number, color: number, big: number): void {
+  /**
+   * Explosión prerenderizada de `size` px de alto, con destello, onda de polvo, marca de quemado, restos y
+   * humo. `delay` (s) retrasa todo (explosiones encadenadas).
+   */
+  private boom(x: number, y: number, size: number, o: { debris?: number; scorch?: boolean; shock?: boolean; smoke?: number; delay?: number } = {}): void {
+    const d = -(o.delay ?? 0);
+    const frames = fxFrames('explosion');
+    if (frames.length) this.effects.push({ kind: 'anim', frames, x, y, h: size * 1.25, rot: 0, add: false, age: d, dur: 0.75 + size / 260 });
+    this.effects.push({ kind: 'flash', x, y: y - size * 0.25, r: size * 0.35, color: 0xffc070, age: d, dur: 0.18 });
+    if (o.shock !== false) this.effects.push({ kind: 'ring', x, y, r0: size * 0.25, r1: size * 1.1, color: 0xffffff, width: 2, age: d, dur: 0.55 });
+    const scorch = fxFrames('scorch');
+    if (o.scorch !== false && scorch.length) this.effects.push({ kind: 'decal', tex: scorch[Math.floor(this.rand() * scorch.length)], x, y, w: size * 1.2, age: d, dur: 30 });
+    if (o.debris) this.debris(x, y - size * 0.2, o.debris, 0x5b5f6a, Math.max(1, size / 60), d);
+    for (let i = 0; i < (o.smoke ?? 0); i++) {
+      const ang = this.rand() * Math.PI * 2;
+      this.effects.push({ kind: 'puff', x: x + Math.cos(ang) * size * 0.35, y: y - size * 0.3 + Math.sin(ang) * size * 0.15, r0: size * 0.12, r1: size * (0.3 + this.rand() * 0.15), rise: size * 0.5, color: 0x55505a, alpha: 0.75, age: d - 0.35 - i * 0.05, dur: 2.2 });
+    }
+  }
+
+  /** Fogonazo de boca: un fotograma de llama prerenderizado, orientado hacia el blanco. */
+  private muzzle(x: number, y: number, tx: number, ty: number, h: number): void {
+    const frames = fxFrames('muzzle');
+    if (!frames.length) {
+      this.effects.push({ kind: 'flash', x, y, r: h * 0.3, color: 0xfff2c8, age: 0, dur: 0.07 });
+      return;
+    }
+    const f = frames[Math.floor(this.rand() * frames.length)];
+    this.effects.push({ kind: 'anim', frames: [f], x, y, h, rot: Math.atan2(ty - y, tx - x) + this.rand() * 0.6, add: true, age: 0, dur: 0.07 });
+    this.effects.push({ kind: 'flash', x, y, r: h * 0.35, color: 0xffd08a, age: 0, dur: 0.1 });
+  }
+
+  private debris(x: number, y: number, n: number, color: number, big: number, delay = 0): void {
     const parts = Array.from({ length: n }, () => ({ vx: (this.rand() - 0.5) * 120 * big, vy: -(40 + this.rand() * 90) * big, s: 1.5 + this.rand() * 1.5 * big }));
-    this.effects.push({ kind: 'debris', x, y, parts, color, age: 0, dur: 0.7 });
+    this.effects.push({ kind: 'debris', x, y, parts, color, age: delay, dur: 0.9 });
   }
 
   /** Avanza y dibuja las animaciones. Llamar una vez por frame con el tiempo real transcurrido. */
-  private take(tex: Texture): PixiSprite {
+  private take(tex: Texture, layer: Container = this.fxLayer): PixiSprite {
     const sp = this.pool.pop() ?? new PixiSprite();
     sp.texture = tex;
     sp.visible = true;
     sp.rotation = 0;
     sp.anchor.set(0.5);
-    if (!sp.parent) this.fxLayer.addChild(sp);
+    sp.blendMode = 'normal';
+    sp.tint = 0xffffff;
+    sp.alpha = 1;
+    sp.scale.set(1);
+    if (sp.parent !== layer) layer.addChild(sp);
     return sp;
   }
 
@@ -1100,47 +1246,80 @@ export class GameView {
       const p = e.age / e.dur;
       switch (e.kind) {
         case 'line': {
-          const sp = (e.spr ??= [this.take(Texture.WHITE)])[0];
+          // Trazadora: una estela de luz prerenderizada, estirada entre el arma y el blanco.
+          const tracer = fxTex('tracer');
+          const sp = (e.spr ??= [this.take(tracer ?? Texture.WHITE)])[0];
+          if (tracer) sp.blendMode = 'add';
           sp.anchor.set(0, 0.5);
           sp.position.set(e.x1, e.y1);
           sp.width = Math.hypot(e.x2 - e.x1, e.y2 - e.y1);
-          sp.height = e.width;
+          sp.height = e.width * (tracer ? 3 : 1);
           sp.rotation = Math.atan2(e.y2 - e.y1, e.x2 - e.x1);
           sp.tint = e.color;
           sp.alpha = e.alpha * (1 - p);
           break;
         }
         case 'flash': {
-          const sp = (e.spr ??= [this.take(this.circleTex)])[0];
-          const r = e.r * (0.6 + 0.6 * p);
+          const glow = fxTex('glow');
+          const sp = (e.spr ??= [this.take(glow ?? this.circleTex)])[0];
+          if (glow) sp.blendMode = 'add';
+          const r = e.r * (0.6 + 0.6 * p) * (glow ? 1.6 : 1);
           sp.position.set(e.x, e.y);
           sp.width = r * 2;
           sp.height = r * 2;
           sp.tint = e.color;
-          sp.alpha = 0.85 * (1 - p);
+          sp.alpha = 0.9 * (1 - p);
           break;
         }
         case 'ring': {
-          const sp = (e.spr ??= [this.take(this.ringTex)])[0];
-          const r = e.r0 + (e.r1 - e.r0) * p;
+          // Onda de polvo sobre el suelo (impactos) o anillo de luz (avisos: construido, desplegado...).
+          const tex = fxTex(e.energy ? 'energyring' : 'shockwave');
+          const sp = (e.spr ??= [this.take(tex ?? this.ringTex)])[0];
+          if (tex && e.energy) sp.blendMode = 'add';
+          const r = e.r0 + (e.r1 - e.r0) * (tex && !e.energy ? Math.sqrt(p) : p);
           sp.position.set(e.x, e.y);
           sp.width = r * 2;
           sp.height = r;
-          sp.tint = e.color;
-          sp.alpha = 1 - p;
+          sp.tint = tex && !e.energy ? 0xffffff : e.color;
+          sp.alpha = (1 - p) * (tex && !e.energy ? 0.85 : 1);
           break;
         }
         case 'debris': {
-          const parts = (e.spr ??= e.parts.map(() => this.take(Texture.WHITE)));
+          // Restos: trozos de roca y metal renderizados que saltan, giran y caen.
+          const chunks = fxFrames('debris');
+          const parts = (e.spr ??= e.parts.map((_, k) => this.take(chunks.length ? chunks[k % chunks.length] : Texture.WHITE)));
           const t = e.age;
           e.parts.forEach((q, k) => {
             const sp = parts[k];
             sp.position.set(e.x + q.vx * t, e.y + q.vy * t + 220 * t * t);
-            sp.width = q.s;
-            sp.height = q.s;
-            sp.tint = e.color;
-            sp.alpha = 1 - p;
+            const sz = chunks.length ? q.s * 2.6 : q.s;
+            sp.width = sz;
+            sp.height = sz;
+            sp.rotation = q.vx * t * 0.08;
+            if (!chunks.length) sp.tint = e.color;
+            sp.alpha = p < 0.7 ? 1 : (1 - p) / 0.3;
           });
+          break;
+        }
+        case 'anim': {
+          const sp = (e.spr ??= [this.take(e.frames[0])])[0];
+          const tex = e.frames[Math.min(e.frames.length - 1, Math.floor(p * e.frames.length))];
+          if (sp.texture !== tex) sp.texture = tex;
+          sp.anchor.copyFrom(tex.defaultAnchor ?? { x: 0.5, y: 0.5 });
+          if (e.add) sp.blendMode = 'add';
+          const k = e.h / tex.height;
+          sp.scale.set(k);
+          sp.rotation = e.rot;
+          sp.position.set(e.x, e.y);
+          sp.alpha = p < 0.8 ? 1 : (1 - p) / 0.2;
+          break;
+        }
+        case 'decal': {
+          const sp = (e.spr ??= [this.take(e.tex, this.decalLayer)])[0];
+          sp.position.set(e.x, e.y);
+          sp.width = e.w;
+          sp.height = (e.w * e.tex.height) / e.tex.width;
+          sp.alpha = p < 0.7 ? 0.9 : (0.9 * (1 - p)) / 0.3;
           break;
         }
         case 'text':
@@ -1148,13 +1327,20 @@ export class GameView {
           e.t.alpha = 1 - p;
           break;
         case 'puff': {
-          const sp = (e.spr ??= [this.take(this.circleTex)])[0];
-          const r = e.r0 + (e.r1 - e.r0) * Math.sqrt(p);
+          // Bocanada de humo volumétrico (4 variantes), girada al azar.
+          const smokes = fxFrames('smoke');
+          if (e.v === undefined) {
+            e.v = Math.floor(this.rand() * 4);
+            e.rot = this.rand() * Math.PI * 2;
+          }
+          const sp = (e.spr ??= [this.take(smokes.length ? smokes[e.v % smokes.length] : this.circleTex)])[0];
+          const r = (e.r0 + (e.r1 - e.r0) * Math.sqrt(p)) * (smokes.length ? 1.5 : 1);
           sp.position.set(e.x, e.y - e.rise * p);
           sp.width = r * 2;
           sp.height = r * 2;
-          sp.tint = e.color;
-          sp.alpha = e.alpha * (1 - p);
+          sp.rotation = (e.rot ?? 0) + p * 0.6;
+          sp.tint = smokes.length ? lighten(e.color) : e.color;
+          sp.alpha = e.alpha * (1 - p) * (p < 0.15 ? p / 0.15 : 1);
           break;
         }
       }
@@ -1253,6 +1439,15 @@ function setBar(bg: PixiSprite, fg: PixiSprite, y: number, w: number, frac: numb
   fg.width = Math.max(0, w * Math.min(1, frac));
   fg.height = 4;
   fg.tint = color;
+}
+
+/** Aclara un color de humo pensado para círculos planos: la textura volumétrica ya trae su sombreado. */
+function lighten(c: number): number {
+  const r = (c >> 16) & 255;
+  const g = (c >> 8) & 255;
+  const b = c & 255;
+  const f = (v: number) => Math.min(255, Math.round(v + (255 - v) * 0.45));
+  return (f(r) << 16) | (f(g) << 8) | f(b);
 }
 
 function hpColor(frac: number): number {
@@ -1410,17 +1605,17 @@ function drawBuildingArt(g: Graphics, c: Container, b: Building, selected: boole
   if (selected) g.poly([0, -hh2 - 4, hw2 + 8, 0, 0, hh2 + 4, -hw2 - 8, 0]).stroke({ width: 2, color: 0xffffff });
   if (b.type === 'relay') {
     // Luz de estado en lo alto de la antena: verde con red, roja sin ella.
-    let light = c.children.find((ch) => ch.label === 'art-light') as Graphics | undefined;
+    let light = c.children.find((ch) => ch.label === 'art-light') as PixiSprite | undefined;
     if (!light) {
-      light = new Graphics();
+      light = new PixiSprite(fxTex('glow') ?? Texture.WHITE);
       light.label = 'art-light';
+      light.anchor.set(0.5);
+      light.blendMode = 'add';
+      light.width = light.height = 18;
       c.addChild(light);
     }
-    light.clear();
-    const col = b.powered ? 0x7dffb0 : 0xff4d6d;
-    const ly = -1.62 * TILE_HEIGHT_PX - 4;
-    light.circle(0, ly, 6).fill({ color: col, alpha: 0.3 });
-    light.circle(0, ly, 2.8).fill(col);
+    light.tint = b.powered ? 0x7dffb0 : 0xff4d6d;
+    light.position.set(0, -1.62 * TILE_HEIGHT_PX - 4);
   }
   const label = c.children.find((ch) => ch.label === 'label');
   if (label) label.visible = false;
@@ -1779,4 +1974,5 @@ function drawColossus(g: Graphics, color: number): void {
 
 export { loadTerrainTextures } from './terrain';
 export { loadDecor } from './decor';
+export { fxAll, loadFx } from './fx';
 export { loadUnitArt, prewarmTextures } from './units';

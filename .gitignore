@@ -11,3 +11,5 @@ art/units/
 __pycache__/
 .env
 art/audio/
+art/fx/
+art/units/*_hi/

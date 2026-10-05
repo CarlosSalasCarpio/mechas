@@ -75,3 +75,14 @@ describe('cimientos al llegar', () => {
     expect(st.players[0].metal).toBeGreaterThanOrEqual(1000);
   });
 });
+
+describe('trucos', () => {
+  it('impacto: Gen-3 y todas las tecnologías', async () => {
+    const { createGame, step, TECH_ORDER } = await import('../src');
+    const st = createGame({ seed: 3 });
+    step(st, [{ tick: 0, player: 0, kind: 'unlockAll' }]);
+    expect(st.players[0].gen).toBe(3);
+    expect(st.players[0].techs.length).toBe(TECH_ORDER.length);
+    expect(st.players[1].gen).toBe(1);
+  });
+});

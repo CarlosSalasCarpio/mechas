@@ -31,7 +31,7 @@ import {
   coverOf,
   linkOf,
 } from '@epocas/sim';
-import { assignPlayerColors, BUILDING_NAMES, GameView, isoX, isoY, loadDecor, loadTerrainTextures, loadUnitArt, prewarmTextures, screenToWorld, UNIT_BOX, type Pos } from '@epocas/render';
+import { assignPlayerColors, BUILDING_NAMES, GameView, isoX, isoY, loadDecor, loadTerrainTextures, loadUnitArt, prewarmTextures, loadFx, fxAll, screenToWorld, UNIT_BOX, type Pos } from '@epocas/render';
 import { Sfx, Voices } from './audio';
 import { Minimap } from './minimap';
 
@@ -75,10 +75,10 @@ const app = new Application();
 await app.init({ resizeTo: window, background: '#14170f', antialias: true });
 document.body.prepend(app.canvas);
 
-await Promise.all([loadTerrainTextures(), loadDecor(), loadUnitArt()]);
+await Promise.all([loadTerrainTextures(), loadDecor(), loadUnitArt(), loadFx()]);
 const view = new GameView(st.map, PLAYER, app.renderer);
 const renderErrors = new Set<string>();
-prewarmTextures(app.renderer);
+prewarmTextures(app.renderer, fxAll());
 // Acceso para pruebas automatizadas del navegador.
 (window as unknown as { __game: unknown }).__game = { st, world: null as unknown, pending: null as unknown };
 const dragGfx = new Graphics();
@@ -136,7 +136,10 @@ addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   keys.add(k);
   if (k === 'p') setPaused(!paused);
-  if (k === 'f') toggleFullscreen();
+  if (e.key === 'F3') {
+    e.preventDefault();
+    $('top').classList.toggle('debug');
+  }
   if (k === 'i') {
     if (e.shiftKey) selectAllIdle();
     else nextIdleWorker();
@@ -319,32 +322,23 @@ function intentAt(px: number, py: number): { kind: Intent; target: number } {
   return { kind: 'none', target: 0 };
 }
 
-function cursorUrl(svg: string, hx: number, hy: number, fallback: string): string {
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${hx} ${hy}, ${fallback}`;
+/**
+ * Cursores renderizados en Blender (art/render_cursors.py): 32 px y 64 px para pantallas retina.
+ * El punto activo se da en px de la versión de 32.
+ */
+function cursorImg(name: string, hx: number, hy: number, fallback: string): string {
+  return `-webkit-image-set(url("cursors/${name}_32.png") 1x, url("cursors/${name}_64.png") 2x) ${hx} ${hy}, ${fallback}`;
 }
-const CURSORS: Record<Intent, string> = {
-  attack: cursorUrl(
-    "<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28'><g stroke-linecap='round'><path d='M3 3L18 18' stroke='#111' stroke-width='6'/><path d='M3 3L18 18' stroke='#e5e7eb' stroke-width='3'/><path d='M13 21L21 13' stroke='#111' stroke-width='6'/><path d='M13 21L21 13' stroke='#c9a44a' stroke-width='3'/><path d='M19 19L25 25' stroke='#111' stroke-width='6'/><path d='M19 19L25 25' stroke='#7c4a1e' stroke-width='3'/></g></svg>",
-    3,
-    3,
-    'crosshair',
-  ),
-  gather: cursorUrl(
-    "<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28'><g stroke-linecap='round' fill='none'><path d='M4 9Q14 1 24 9' stroke='#111' stroke-width='6'/><path d='M4 9Q14 1 24 9' stroke='#9ca3af' stroke-width='3'/><path d='M14 6L14 26' stroke='#111' stroke-width='6'/><path d='M14 6L14 26' stroke='#7c4a1e' stroke-width='3'/></g></svg>",
-    4,
-    9,
-    'pointer',
-  ),
-  construct: cursorUrl(
-    "<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28'><g stroke-linecap='round'><path d='M8 12L24 26' stroke='#111' stroke-width='6'/><path d='M8 12L24 26' stroke='#7c4a1e' stroke-width='3'/><path d='M3 10L12 3L16 8L8 14Z' fill='#9ca3af' stroke='#111' stroke-width='2'/></g></svg>",
-    4,
-    4,
-    'pointer',
-  ),
-  repair: '',
-  none: 'default',
+const CURSORS: Record<Intent | 'target', string> = {
+  attack: cursorImg('attack', 2, 2, 'crosshair'),
+  gather: cursorImg('gather', 4, 4, 'pointer'),
+  construct: cursorImg('construct', 4, 4, 'pointer'),
+  repair: cursorImg('repair', 4, 4, 'pointer'),
+  none: cursorImg('pointer', 2, 2, 'default'),
+  target: cursorImg('target', 16, 16, 'crosshair'),
 };
-CURSORS.repair = CURSORS.construct;
+// El resto de la página (panel, barra superior) también con el cursor de flecha propio.
+document.body.style.cursor = CURSORS.none;
 
 app.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 app.canvas.addEventListener('pointerdown', (e) => {
@@ -626,7 +620,7 @@ app.ticker.add((t) => {
   if (targeting && selectedMilitary().length === 0) targeting = false;
   if (targeting) {
     view.setGhost(null, 0, 0, false);
-    app.canvas.style.cursor = CURSORS.attack;
+    app.canvas.style.cursor = CURSORS.target;
   } else if (placing) {
     const { tx, ty } = ghostTile(mouse.x, mouse.y, placing);
     view.setGhost(placing, tx, ty, canPlaceKnown(st, placing, tx, ty, PLAYER));
@@ -663,16 +657,43 @@ app.ticker.add((t) => {
 
 // ------------------------------------------------------------ HUD
 const $ = (id: string) => document.getElementById(id)!;
-const panel = $('panel');
-const info = $('info');
+const hud = $('hud');
+const selEl = $('sel');
 const actions = $('actions');
+let selHtml = '';
+// Panel de selección: clic en una miniatura = seleccionar solo esa; Mayús + clic = quitarla del grupo.
+selEl.addEventListener('click', (e) => {
+  const mini = (e.target as HTMLElement).closest<HTMLElement>('.mini');
+  if (!mini) return;
+  const id = Number(mini.dataset.id);
+  if (e.shiftKey) selected.delete(id);
+  else {
+    selected.clear();
+    selected.add(id);
+  }
+  renderPanel();
+});
+// Tooltip de los botones de órdenes.
+const tip = $('tip');
+actions.addEventListener('mousemove', (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLElement>('.cmd');
+  if (!b || !b.dataset.tipTitle) {
+    tip.style.display = 'none';
+    return;
+  }
+  tip.innerHTML = `<b>${b.dataset.tipTitle}</b><small>${b.dataset.tip ?? ''}</small>`;
+  tip.style.display = 'block';
+  tip.style.left = `${Math.min(innerWidth - tip.offsetWidth - 8, e.clientX + 14)}px`;
+  tip.style.top = `${e.clientY - tip.offsetHeight - 14}px`;
+});
+actions.addEventListener('mouseleave', () => (tip.style.display = 'none'));
 const alertBox = $('alert');
 let actionsKey = '';
 let alertUntil = 0;
 let lastEvent: (typeof st.events)[number] | undefined;
 
 /** Rejilla de atajos al estilo AoE: la posición del botón en el panel decide su tecla. */
-const HOTKEYS = ['q', 'w', 'e', 'a', 's', 'd', 'z', 'x', 'c'];
+const HOTKEYS = ['q', 'w', 'e', 'r', 't', 'a', 's', 'd', 'f', 'g', 'z', 'x', 'c', 'v', 'b'];
 
 const svg = (body: string) => `<svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">${body}</svg>`;
 /** Iconos del panel: siluetas simples, del color de su sección. */
@@ -705,6 +726,8 @@ interface Action {
   group: ActionGroup;
   /** Icono SVG (en línea, del color del texto). */
   icon: string;
+  /** Imagen del botón (retrato o icono renderizado, en public/ui). */
+  img: string;
   label: string;
   sub: string;
   enabled: boolean;
@@ -726,6 +749,7 @@ function currentActions(): Action[] {
     out.push({
       group: 'order',
       icon: ICONS.truck,
+      img: anyMobile ? 'icon_deploy' : 'icon_undeploy',
       label: anyMobile ? 'Desplegar antena' : 'Replegar',
       sub: anyMobile ? 'funciona como antena; no se mueve' : 'vuelve a poder moverse',
       enabled: true,
@@ -739,7 +763,8 @@ function currentActions(): Action[] {
     out.push({
       group: 'order',
       icon: ICONS.attack,
-      label: `Avanzar atacando${targeting ? ' ◂' : ''}`,
+      img: 'icon_amove',
+      label: 'Avanzar atacando',
       sub: 'luego clic en el mapa',
       enabled: true,
       run: () => {
@@ -751,6 +776,7 @@ function currentActions(): Action[] {
     out.push({
       group: 'order',
       icon: ICONS.stop,
+      img: 'icon_stop',
       label: 'Detener',
       sub: 'olvidan su orden',
       enabled: true,
@@ -768,7 +794,8 @@ function currentActions(): Action[] {
       out.push({
         group: 'build',
         icon: ICONS.building,
-        label: `${BUILDING_NAMES[t]}${placing === t ? ' ◂' : ''}`,
+        img: `portrait_${t}`,
+        label: BUILDING_NAMES[t],
         sub: locked ? `Requiere Gen-${needGen}` : `${s.cost} metal`,
         enabled: !locked && metal >= s.cost,
         run: () => {
@@ -784,6 +811,7 @@ function currentActions(): Action[] {
       out.push({
         group: 'unit',
         icon: ICONS[unit],
+        img: `portrait_${unit}`,
         label: `${cap(UNIT_NAMES[unit][0])}${bs.length > 1 ? ` ×${bs.length}` : ''}`,
         sub: locked ? `Requiere Gen-${UNIT_GEN[unit]}` : `${u.cost} metal c/u · ${u.trainTime / 20} s · Shift: 5`,
         enabled: !locked && metal >= u.cost && bs.some((b) => b.queue.length < 10),
@@ -816,6 +844,7 @@ function currentActions(): Action[] {
       out.push({
         group: tech === 'gen2' || tech === 'gen3' ? 'gen' : 'tech',
         icon: tech === 'gen2' || tech === 'gen3' ? ICONS.gen : ICONS.tech,
+        img: tech === 'gen2' ? 'gen2' : tech === 'gen3' ? 'gen3' : `icon_${tech}`,
         label: TECH_INFO[tech][0],
         sub: why === `${t.cost} metal · ${t.time / 20} s` ? `${TECH_INFO[tech][1]} · ${why}` : why,
         enabled: t.gen <= pl.gen && missing.length === 0 && !!free && metal >= t.cost,
@@ -854,91 +883,122 @@ function renderPanel(): void {
   const us = selectedUnits();
   const bs = selectedBuildings();
   const b = bs.length === 1 ? bs[0] : undefined;
-  const lines: string[] = [];
-
-  if (us.length > 0) {
-    const groups = new Map<UnitType, Unit[]>();
-    for (const u of us) groups.set(u.type, [...(groups.get(u.type) ?? []), u]);
-    for (const [t, g] of groups) {
-      const hp = g.reduce((s, u) => s + Math.max(0, u.hp), 0);
-      const max = g.reduce((s, u) => s + u.maxHp, 0);
-      const head = g.length === 1 ? UNIT_NAMES[t][0] : `${g.length} ${UNIT_NAMES[t][1]}`;
-      const queued = g.length === 1 && g[0].orderQueue.length ? ` · ${g[0].orderQueue.length} órdenes en cola` : '';
-      lines.push(`${head.toUpperCase()} · vida ${hp}/${max}${g.length === 1 && g[0].carry ? ` · carga ${g[0].carry} de metal` : ''}${queued}`);
-      lines.push(`  ${statsLine(t)}`);
-      if (UNITS[t].needsPower && !st.players[PLAYER].noPower) {
-        const off = g.filter((u) => u.battery <= 0).length;
-        const out = g.filter((u) => u.battery > 0 && !isPowered(st, PLAYER, u.x, u.y));
-        const parts = [];
-        if (g.length - off - out.length > 0) parts.push(g.length === 1 ? 'conectado a la red' : `${g.length - off - out.length} conectados`);
-        if (out.length) parts.push(`fuera de la red: batería ${Math.ceil(Math.min(...out.map((u) => u.battery)) / 20)} s`);
-        if (off) parts.push(g.length === 1 ? 'APAGADO: sin energía' : `${off} apagados`);
-        lines.push(`  Energía: ${parts.join(' · ')} (batería máx. ${BATTERY_TICKS / 20} s)`);
-      }
-    }
-  } else if (b) {
-    const s = BUILDINGS[b.type];
-    lines.push(`${BUILDING_NAMES[b.type].toUpperCase()} · vida ${Math.max(0, b.hp)}/${b.maxHp}`);
-    if (s.power && b.complete) {
-      const relay = b.type === 'relay';
-      const cover = coverOf(st, b.owner, s.power.cover, relay);
-      const link = linkOf(st, b.owner, s.power.link, relay);
-      lines.push(b.powered ? `Con energía · cubre ${cover} cas. · enlaza a ${link} cas.` : 'SIN ENERGÍA: no enlaza con ninguna central');
-    }
-    if (!b.complete) lines.push(`En construcción: ${Math.floor((100 * b.progress) / s.buildTime)}%`);
-    else if (s.trains.length) {
-      const q = b.queue.length;
-      let l = q ? `Entrenando ${UNIT_NAMES[b.queue[0]][0]}: ${Math.floor((100 * b.trainTicks) / UNITS[b.queue[0]].trainTime)}% · en cola ${q}` : 'Cola vacía';
-      if (q && b.trainTicks >= UNITS[b.queue[0]].trainTime) l += ' · esperando población';
-      lines.push(l);
-      for (const t of s.trains) lines.push(`  ${UNIT_NAMES[t][0]}: ${statsLine(t)}`);
-    }
-  } else if (bs.length > 1) {
-    const s = BUILDINGS[bs[0].type];
-    const hp = bs.reduce((a, x) => a + Math.max(0, x.hp), 0);
-    const max = bs.reduce((a, x) => a + x.maxHp, 0);
-    lines.push(`${bs.length} × ${BUILDING_NAMES[bs[0].type].toUpperCase()} · vida ${hp}/${max}`);
-    if (s.trains.length) {
-      lines.push(`En cola: ${bs.map((x) => x.queue.length).join(' · ')}`);
-      for (const t of s.trains) lines.push(`  ${UNIT_NAMES[t][0]}: ${statsLine(t)}`);
-    }
+  const html = selectionHtml(us, bs, b);
+  hud.style.display = html ? 'grid' : 'none';
+  if (html !== selHtml) {
+    selHtml = html;
+    selEl.innerHTML = html;
   }
-
   renderQueue(bs.filter((x) => x.complete && (x.queue.length > 0 || x.research)));
 
+  // Rejilla de órdenes: 5 × 3, siempre llena (huecos vacíos para que no "baile" la maqueta).
   const list = currentActions();
-  panel.style.display = lines.length ? 'flex' : 'none';
-  info.textContent = lines.join('\n');
-  const key = list.map((a) => `${a.key}${a.label}${a.sub}${a.enabled}`).join('|');
+  const key = list.map((a) => `${a.key}${a.img}${a.label}${a.sub}${a.enabled}${placing}${targeting}`).join('|');
   if (key !== actionsKey) {
     actionsKey = key;
-    // Una sección por grupo (unidades, generación, tecnologías…), cada una con su color.
-    const sections: HTMLElement[] = [];
-    for (const group of ['unit', 'gen', 'tech', 'build', 'order'] as ActionGroup[]) {
-      const items = list.filter((a) => a.group === group);
-      if (items.length === 0) continue;
-      const sec = document.createElement('div');
-      sec.className = `sec ${group}`;
-      const h = document.createElement('h4');
-      h.textContent = GROUP_TITLES[group];
-      const row = document.createElement('div');
-      row.className = 'row';
-      for (const a of items) {
-        const el = document.createElement('button');
-        el.className = `act ${group}`;
-        el.innerHTML = `${a.icon}<span class="txt"><span class="lbl"><kbd>${a.key.toUpperCase()}</kbd>${a.label}</span><small>${a.sub}</small></span>`;
-        el.disabled = !a.enabled;
-        el.addEventListener('click', (ev) => {
-          a.run(ev.shiftKey);
-          el.blur();
-        });
-        row.append(el);
+    const cells: HTMLElement[] = [];
+    for (let i = 0; i < HOTKEYS.length; i++) {
+      const a = list[i];
+      const el = document.createElement('button');
+      if (!a) {
+        el.className = 'cmd empty';
+        el.disabled = true;
+        cells.push(el);
+        continue;
       }
-      sec.append(h, row);
-      sections.push(sec);
+      const active = (a.group === 'build' && placing && a.img === `portrait_${placing}`) || (a.img === 'icon_amove' && targeting);
+      el.className = `cmd${active ? ' active' : ''}`;
+      el.innerHTML = `<img src="ui/${a.img}.png" alt="" /><kbd>${a.key.toUpperCase()}</kbd>${a.enabled ? '' : '<span class="lock">🔒</span>'}`;
+      el.disabled = !a.enabled;
+      el.dataset.tipTitle = a.label;
+      el.dataset.tip = a.sub;
+      el.addEventListener('click', (ev) => {
+        a.run(ev.shiftKey);
+        el.blur();
+      });
+      cells.push(el);
     }
-    actions.replaceChildren(...sections);
+    actions.replaceChildren(...cells);
+    tip.style.display = 'none';
   }
+}
+
+/** Icono + valor (+ detalle) para la fila de estadísticas. */
+function stat(icon: string, value: string, extra = '', title = ''): string {
+  return `<span class="stat" title="${title}"><img src="ui/icon_${icon}.png" alt="" />${value}${extra ? ` <em>${extra}</em>` : ''}</span>`;
+}
+
+function hpBar(hp: number, max: number): string {
+  const f = Math.max(0, Math.min(1, hp / max));
+  return `<div class="hpbar${f < 0.3 ? ' low' : f < 0.6 ? ' mid' : ''}"><i style="width:${(f * 100).toFixed(1)}%"></i></div><span class="hptext">${Math.max(0, Math.round(hp))} / ${max}</span>`;
+}
+
+function unitStats(t: UnitType): string {
+  const u = UNITS[t];
+  const tiles = (v: number) => (v / SUB).toLocaleString('es', { maximumFractionDigits: 1 });
+  const parts: string[] = [];
+  if (u.damage > 0) {
+    parts.push(stat('attack', String(u.damage), u.vsBuilding !== u.damage ? `${u.vsBuilding} a edif.` : u.splash ? `área ${tiles(u.splash)}` : '', 'Ataque'));
+    parts.push(stat('range', u.range < SUB ? 'cuerpo' : `${tiles(u.range)}`, u.range < SUB ? '' : 'cas.', 'Alcance'));
+    parts.push(stat('cooldown', `${(u.cooldown / 20).toLocaleString('es', { maximumFractionDigits: 2 })} s`, '', 'Cadencia'));
+  }
+  parts.push(stat('speed', tiles(u.speed * 20), 'cas./s', 'Velocidad'));
+  parts.push(stat('sight', tiles(u.sight), 'cas.', 'Visión'));
+  if (t === 'truck') parts.push(stat('energy', String(coverOf(st, PLAYER, BUILDINGS.relay.power!.cover, true)), 'cas. desplegado', 'Cobertura'));
+  return `<div class="stats">${parts.join('')}</div>`;
+}
+
+/** Contenido del panel de selección (retrato, nombre, vida, estadísticas, estado) como HTML. */
+function selectionHtml(us: Unit[], bs: Building[], b: Building | undefined): string {
+  if (us.length === 1) {
+    const u = us[0];
+    const notes: string[] = [];
+    if (u.carry) notes.push(`<span class="note">Carga: ${u.carry} de metal</span>`);
+    if (u.orderQueue.length) notes.push(`<span class="note">${u.orderQueue.length} órdenes en cola</span>`);
+    if (u.needsPower && !st.players[PLAYER].noPower) {
+      if (u.battery <= 0) notes.push('<span class="note warn">APAGADO: sin energía</span>');
+      else if (!isPowered(st, PLAYER, u.x, u.y)) notes.push(`<span class="note warn">Fuera de la red · batería ${Math.ceil(u.battery / 20)} s</span>`);
+      else notes.push('<span class="note ok">Conectado a la red</span>');
+    }
+    if (u.type === 'truck') notes.push(`<span class="note${u.deployState === 2 ? (u.nodePowered ? ' ok' : ' warn') : ''}">${u.deployState === 2 ? (u.nodePowered ? 'Desplegado · enlazado' : 'Desplegado · SIN ENLACE') : u.deployState === 1 ? 'Desplegando…' : 'En marcha'}</span>`);
+    return `<div class="portrait"><img src="ui/portrait_${u.type}.png" alt="" /></div><div class="selInfo"><div class="selName">${UNIT_NAMES[u.type][0]}</div>${hpBar(u.hp, u.maxHp)}${unitStats(u.type)}${notes.join('')}</div>`;
+  }
+  if (us.length > 1) {
+    // Varias unidades: rejilla de miniaturas (clic: solo esa; Mayús + clic: quitarla).
+    const minis = us
+      .slice(0, 40)
+      .map((u) => `<button class="mini" data-id="${u.id}" title="${UNIT_NAMES[u.type][0]}"><img src="ui/portrait_${u.type}.png" alt="" /><i><b style="width:${Math.max(0, (100 * u.hp) / u.maxHp).toFixed(0)}%;background:${u.hp / u.maxHp < 0.3 ? '#ef4444' : u.hp / u.maxHp < 0.6 ? '#facc15' : '#7dffb0'}"></b></i></button>`)
+      .join('');
+    const counts = new Map<UnitType, number>();
+    for (const u of us) counts.set(u.type, (counts.get(u.type) ?? 0) + 1);
+    const summary = [...counts].map(([t, n]) => `${n} ${UNIT_NAMES[t][n === 1 ? 0 : 1]}`).join(' · ');
+    return `<div class="selInfo" style="flex:1"><div class="selName">${us.length} unidades <small>${summary}</small></div><div class="group">${minis}</div></div>`;
+  }
+  if (b) {
+    const s = BUILDINGS[b.type];
+    const notes: string[] = [];
+    const parts: string[] = [];
+    if (s.power && b.complete) {
+      const relay = b.type === 'relay';
+      parts.push(stat('energy', String(coverOf(st, b.owner, s.power.cover, relay)), 'cas. cobertura', 'Cobertura'));
+      parts.push(stat('range', String(linkOf(st, b.owner, s.power.link, relay)), 'cas. enlace', 'Enlace'));
+      if (!b.powered) notes.push('<span class="note warn">SIN ENERGÍA: no enlaza con ninguna central</span>');
+    }
+    if (s.attack) {
+      parts.push(stat('attack', String(s.attack.damage), '', 'Ataque'));
+      parts.push(stat('range', String(s.attack.range / SUB), 'cas.', 'Alcance'));
+    }
+    if (!b.complete) notes.push(`<span class="note">En construcción: ${Math.floor((100 * b.progress) / s.buildTime)}%</span>`);
+    else if (s.trains.length && b.queue.length === 0 && !b.research) notes.push('<span class="note">Sin producción</span>');
+    if (b.complete && b.queue.length && b.trainTicks >= UNITS[b.queue[0]].trainTime) notes.push('<span class="note warn">Esperando población</span>');
+    return `<div class="portrait"><img src="ui/portrait_${b.type}.png" alt="" /></div><div class="selInfo"><div class="selName">${BUILDING_NAMES[b.type]}</div>${hpBar(b.hp, b.maxHp)}${parts.length ? `<div class="stats">${parts.join('')}</div>` : ''}${notes.join('')}</div>`;
+  }
+  if (bs.length > 1) {
+    const hp = bs.reduce((a, x) => a + Math.max(0, x.hp), 0);
+    const max = bs.reduce((a, x) => a + x.maxHp, 0);
+    return `<div class="portrait"><img src="ui/portrait_${bs[0].type}.png" alt="" /></div><div class="selInfo"><div class="selName">${BUILDING_NAMES[bs[0].type]} <small>× ${bs.length}</small></div>${hpBar(hp, max)}</div>`;
+  }
+  return '';
 }
 
 let lastSel = new Set<number>();
@@ -947,7 +1007,9 @@ const knownDefeated = new Set<number>();
 setInterval(() => {
   $('metal').textContent = String(st.players[PLAYER].metal);
   $('pop').textContent = `${popUsed(st, PLAYER)} / ${st.players[PLAYER].popCap}`;
-  $('gen').textContent = `GEN-${st.players[PLAYER].gen} · ${GEN_NAMES[st.players[PLAYER].gen]}`;
+  $('gen').textContent = `Gen-${st.players[PLAYER].gen} · ${GEN_NAMES[st.players[PLAYER].gen]}`;
+  const emblem = $('genEmblem') as HTMLImageElement;
+  if (!emblem.src.endsWith(`gen${st.players[PLAYER].gen}.png`)) emblem.src = `ui/gen${st.players[PLAYER].gen}.png`;
   $('debug').textContent = `${app.ticker.FPS.toFixed(0)} fps · sim ${simMs.toFixed(1)} ms · dibujo ${renderMs.toFixed(1)} ms · ${st.units.length} unid. · tick ${st.tick}${paused ? ' · PAUSA' : ''}`;
   (window as unknown as { __perf: object }).__perf = { fps: app.ticker.FPS, simMs, renderMs, units: st.units.length, tick: st.tick };
   renderPanel();
@@ -1050,6 +1112,9 @@ function toggleChat(): void {
   } else if (code === 'energia' || code === 'energía') {
     pending.push({ tick: st.tick, player: PLAYER, kind: 'toggleNoPower' });
     showToast(st.players[PLAYER].noPower ? 'Truco: tus mechas vuelven a necesitar la red' : 'Truco: tus mechas funcionan sin red');
+  } else if (code === 'impacto') {
+    pending.push({ tick: st.tick, player: PLAYER, kind: 'unlockAll' });
+    showToast('Truco: Gen-3 y todas las tecnologías');
   } else if (code === 'turbo') {
     pending.push({ tick: st.tick, player: PLAYER, kind: 'toggleInstant' });
     showToast(st.players[PLAYER].instant ? 'Truco: construcción y producción normales' : 'Truco: construcción y producción instantáneas');
@@ -1206,10 +1271,11 @@ function renderQueue(bs: Building[]): void {
     queueBox.replaceChildren(
       ...researching.map((b) => {
         const el = document.createElement('button');
-        el.className = 'qbox research';
+        const tech = b.research!.tech;
+        el.className = 'qitem research';
         el.dataset.building = String(b.id);
-        el.title = 'Clic: cancelar la investigación (se devuelve el metal)';
-        el.innerHTML = `<b>⚙</b><span>${TECH_INFO[b.research!.tech][0]}</span><i></i>`;
+        el.title = `${TECH_INFO[tech][0]} · clic: cancelar (se devuelve el metal)`;
+        el.innerHTML = `<img src="ui/${tech === 'gen2' || tech === 'gen3' ? tech : `icon_${tech}`}.png" alt="" /><i><b></b></i>`;
         el.addEventListener('click', () => {
           pending.push({ tick: st.tick, player: PLAYER, kind: 'cancelResearch', building: b.id });
           sfx.play('ack');
@@ -1219,10 +1285,10 @@ function renderQueue(bs: Building[]): void {
       }),
       ...[...counts].map(([t, n]) => {
         const el = document.createElement('button');
-        el.className = 'qbox';
+        el.className = 'qitem';
         el.dataset.unit = t;
-        el.title = 'Clic: cancelar una (se devuelve el metal)';
-        el.innerHTML = `<b>${n}</b><span>${UNIT_NAMES[t][n === 1 ? 0 : 1]}</span><i></i>`;
+        el.title = `${UNIT_NAMES[t][n === 1 ? 0 : 1]} · clic: cancelar una (se devuelve el metal)`;
+        el.innerHTML = `<img src="ui/portrait_${t}.png" alt="" />${n > 1 ? `<span>${n}</span>` : ''}<i><b></b></i>`;
         el.addEventListener('click', () => {
           // Cancela en el edificio con más unidades de ese tipo en cola.
           const b = bs
@@ -1237,16 +1303,17 @@ function renderQueue(bs: Building[]): void {
       }),
     );
   }
-  // Barra de avance: la unidad más adelantada de ese tipo.
-  for (const el of queueBox.querySelectorAll<HTMLElement>('.qbox.research')) {
+  // Barra de avance: la investigación, o la unidad más adelantada de ese tipo.
+  for (const el of queueBox.querySelectorAll<HTMLElement>('.qitem.research')) {
     const b = st.buildingsById.get(Number(el.dataset.building));
     const r = b?.research;
-    (el.querySelector('i') as HTMLElement).style.width = r ? `${Math.min(100, (100 * r.ticks) / TECHS[r.tech].time)}%` : '0%';
+    (el.querySelector('i b') as HTMLElement).style.width = r ? `${Math.min(100, (100 * r.ticks) / TECHS[r.tech].time)}%` : '0%';
   }
-  for (const el of queueBox.querySelectorAll<HTMLElement>('.qbox:not(.research)')) {
+  for (const el of queueBox.querySelectorAll<HTMLElement>('.qitem:not(.research)')) {
     const t = el.dataset.unit as UnitType;
-    const best = Math.max(0, ...bs.filter((b) => b.queue[0] === t).map((b) => b.trainTicks / UNITS[t].trainTime));
-    (el.querySelector('i') as HTMLElement).style.width = `${Math.min(100, best * 100)}%`;
+    let best = 0;
+    for (const b of bs) if (b.queue[0] === t) best = Math.max(best, b.trainTicks / UNITS[t].trainTime);
+    (el.querySelector('i b') as HTMLElement).style.width = `${Math.min(100, best * 100)}%`;
   }
 }
 
@@ -1267,11 +1334,20 @@ function toggleFullscreen(): void {
   }
   void document.documentElement.requestFullscreen().then(() => {
     // En pantalla completa el navegador usa Esc para salir; pedir la tecla para que Esc siga pausando
-    // (para salir de pantalla completa: mantener Esc pulsado o la tecla F).
+    // (para salir de pantalla completa: mantener Esc pulsado o el menú ☰).
     const kb = (navigator as unknown as { keyboard?: { lock?: (keys: string[]) => Promise<void> } }).keyboard;
     void kb?.lock?.(['Escape']).catch(() => undefined);
   });
 }
+// Menú del sistema (sonido, pantalla completa, replays).
+const sysMenu = $('sysMenu');
+$('sysBtn').addEventListener('click', (e) => {
+  sysMenu.classList.toggle('open');
+  (e.currentTarget as HTMLElement).blur();
+});
+addEventListener('pointerdown', (e) => {
+  if (!(e.target as HTMLElement).closest('#sysMenu, #sysBtn')) sysMenu.classList.remove('open');
+});
 $('fullscreen').addEventListener('click', (e) => {
   toggleFullscreen();
   (e.currentTarget as HTMLElement).blur();

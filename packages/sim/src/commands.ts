@@ -36,6 +36,8 @@ export type Command =
   | { tick: number; player: number; kind: 'togglePopCap' }
   /** Solo para desarrollo: las unidades del jugador no necesitan red de energía. */
   | { tick: number; player: number; kind: 'toggleNoPower' }
+  /** Truco: Gen-3 y todas las tecnologías. */
+  | { tick: number; player: number; kind: 'unlockAll' }
   /** Trucos de niebla (AoE2): revelar el mapa / quitar la niebla. */
   | { tick: number; player: number; kind: 'toggleRevealMap' }
   | { tick: number; player: number; kind: 'toggleNoFog' };

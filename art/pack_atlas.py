@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, sys.argv[1] if len(sys.argv) > 1 else 'sprites')
 NAME = sys.argv[2] if len(sys.argv) > 2 else 'decor'
-DST = os.path.join(ROOT, '..', 'packages', 'client', 'public', 'decor' if NAME == 'decor' else 'units')
+DST = os.path.join(ROOT, '..', 'packages', 'client', 'public', NAME if NAME in ('decor', 'fx') else 'units')
 os.makedirs(DST, exist_ok=True)
 manifest = json.load(open(os.path.join(SRC, 'manifest.json')))
 if os.environ.get('THIN'):
@@ -36,7 +36,9 @@ def prep(entry):
     src = os.path.join(SRC, m['file'])
     out = os.path.join(tmp, m['file'])
     # Velo del shadow catcher: en los píxeles de pura sombra (negros) se resta un 12 % de alfa. Después, recorte guardando el desplazamiento.
-    geo = subprocess.run(['magick', src, '-channel', 'A', '-fx', 'r + g + b < 0.03 ? max(0, (a - 0.12) * 1.25) : a', '+channel', '-trim', '-format', '%w %h %X %Y', '-write', out, 'info:'], capture_output=True, text=True, check=True).stdout.split()
+    # (Los efectos no: su humo oscuro es legítimo.)
+    veil = [] if NAME == 'fx' else ['-channel', 'A', '-fx', 'r + g + b < 0.03 ? max(0, (a - 0.12) * 1.25) : a', '+channel']
+    geo = subprocess.run(['magick', src, *veil, '-trim', '-format', '%w %h %X %Y', '-write', out, 'info:'], capture_output=True, text=True, check=True).stdout.split()
     w, h, ox, oy = int(geo[0]), int(geo[1]), int(geo[2]), int(geo[3])
     subprocess.run(['magick', out, '+repage', out], check=True)
     # La vegetación y las rocas salen oscuras frente al terreno: aclarar (brillo, saturación).

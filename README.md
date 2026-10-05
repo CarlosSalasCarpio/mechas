@@ -15,7 +15,7 @@ Al abrir el juego aparece el menú (nueva partida con modo y semilla). En la URL
 Controles: doble clic = todas las del mismo tipo en pantalla (unidades o edificios) · Q W E / A S D = acciones del panel
 (Shift+Q = 5 unidades) · Q con militares = avanzar atacando · Shift = encadenar órdenes · I = siguiente obrero ocioso ·
 cámara con flechas, borde de pantalla, botón central o minimapa.
-Trucos (Enter): `acero` = +10.000 metal · `turbo` = construcción y producción instantáneas · `poblacion` = tope de población 1000 · `energia` = tus mechas funcionan sin red · `marco` = revela el mapa · `polo` = quita la niebla (todos se apagan repitiéndolos).
+Trucos (Enter): `acero` = +10.000 metal · `turbo` = construcción y producción instantáneas · `poblacion` = tope de población 1000 · `energia` = tus mechas funcionan sin red · `marco` = revela el mapa · `polo` = quita la niebla · `impacto` = Gen-3 con todas las tecnologías (los que son interruptores se apagan repitiéndolos).
 
 ## Paquetes
 
@@ -56,3 +56,16 @@ python3 art/audio_gen.py voces sfx efectos ambiente   # → packages/client/publ
 ```
 
 Con el plan gratuito, la API de música no está disponible: la música son dos bucles de ambiente hechos con la API de efectos (`ambiente`). Con un plan de pago, `musica` genera una pieza completa. Licencia: el plan gratuito exige atribución y no permite uso comercial.
+
+## Efectos y cursores
+
+Todo prerenderizado en Blender, sin gráficos vectoriales:
+
+- **Efectos** (`art/render_fx.py` → `packages/client/public/fx/`, `packages/render/src/fx.ts`): explosión volumétrica en 16 fotogramas (bola de fuego que se enfría y se vuelve humo), fuego en bucle para los edificios dañados, humo, fogonazos, resplandor, trazadoras, onda de polvo, anillo de energía, restos, marcas de quemado y cohete.
+- **Cursores** (`art/render_cursors.py` → `packages/client/public/cursors/`): flecha, espada, martillo, llave, pico y mira, a 32 y 64 px.
+
+```sh
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P art/render_fx.py
+python3 art/pack_atlas.py fx fx 2048 2 2
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P art/render_cursors.py
+```
